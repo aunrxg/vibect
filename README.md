@@ -6,7 +6,7 @@ A democratic music streaming platform where communities control the playlist thr
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-![Music Space Demo](https://via.placeholder.com/800x400?text=Add+Your+Demo+GIF+Here)
+![Music Space Demo](https://music-space-theta.vercel.app)
 
 ---
 

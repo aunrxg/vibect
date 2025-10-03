@@ -38,4 +38,5 @@ yarn-error.log*
 *.pem
 
 #vs code
-.vscode
+.vscode/
+.vscode/settings.json
