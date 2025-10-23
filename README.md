@@ -270,7 +270,7 @@ music-space/
 pnpm test
 
 # Run tests for specific app
-pnpm --filter @repo/api test
+pnpm --filter @vibect/api test
 
 # Type checking
 pnpm type-check
