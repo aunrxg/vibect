@@ -19,12 +19,12 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
+    "*.{ts,tsx,js,jsx}": [
+      "pnpm run lint --fix",
+      "pnpm run format --write"
     ],
     "*.{md,json,css}": [
-      "prettier --write"
+      "pnpm run format --write"
     ]
   },
   "devDependencies": {
