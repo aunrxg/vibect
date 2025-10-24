@@ -13,6 +13,7 @@ A democratic music streaming platform where communities control the playlist thr
 ## ✨ Features
 
 ### 🎯 Core Functionality
+
 - **Democratic Voting System**: Songs rise to the top of the queue based on community votes
 - **Real-time Synchronization**: All clients stay in perfect sync using NTP-inspired time synchronization
 - **Public & Private Spaces**: Host open jam sessions or invite-only listening parties
@@ -20,6 +21,7 @@ A democratic music streaming platform where communities control the playlist thr
 - **Live Queue Management**: Watch the queue update in real-time as votes come in
 
 ### 🔥 Technical Highlights
+
 - **Distributed Real-time Architecture**: WebSocket-based communication with Redis pub/sub for horizontal scaling
 - **Custom Time Sync Protocol**: NTP-like algorithm ensures playback stays synchronized across all clients (±50ms accuracy)
 - **Type-safe API**: End-to-end type safety with tRPC from database to UI
@@ -74,10 +76,12 @@ A democratic music streaming platform where communities control the playlist thr
 ### Tech Stack
 
 **Monorepo Management**
+
 - Turborepo - Build system orchestration
 - pnpm - Fast, disk-efficient package manager
 
 **Frontend** (`apps/web`)
+
 - Next.js 15 - React framework with App Router
 - TypeScript - Type safety
 - Tailwind CSS - Utility-first styling
@@ -86,16 +90,19 @@ A democratic music streaming platform where communities control the playlist thr
 - Socket.io Client - Real-time WebSocket communication
 
 **API Server** (`apps/api`)
+
 - tRPC - End-to-end typesafe APIs
 - Zod - Runtime validation
 - Prisma - Type-safe database ORM
 
 **WebSocket Server** (`apps/realtime`)
+
 - Socket.io - WebSocket library
 - Redis - Pub/sub for horizontal scaling
 - Custom time sync protocol (NTP)
 
 **Database & Infrastructure**
+
 - PostgreSQL - Primary database
 - Redis - Caching and pub/sub
 - Neon/Supabase - Managed PostgreSQL (production)
@@ -115,17 +122,20 @@ pnpm >= 8.0.0
 ### Quick Start
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/aunrxg/vibect.git
 cd vibect
 ```
 
 2. **Install dependencies**
+
 ```bash
 pnpm install
 ```
 
 3. **Set up environment variables**
+
 ```bash
 # Copy example env files
 cp apps/web/.env.example apps/web/.env.local
@@ -137,6 +147,7 @@ cp packages/database/.env.example packages/database/.env
 ```
 
 4. **Set up the database**
+
 ```bash
 cd packages/database
 pnpm db:generate
@@ -144,12 +155,14 @@ pnpm db:push
 ```
 
 5. **Start all services**
+
 ```bash
 # From root directory
 pnpm dev
 ```
 
 The application will be available at:
+
 - Frontend: http://localhost:3000
 - API: http://localhost:4000
 - WebSocket: http://localhost:4001
@@ -203,16 +216,16 @@ Redis pub/sub enables multiple WebSocket server instances:
 
 ```typescript
 // Server 1 receives vote
-await redis.publish('space:events', {
-  spaceId: '123',
-  type: 'song_voted',
-  data: { songId, voteCount }
-})
+await redis.publish("space:events", {
+  spaceId: "123",
+  type: "song_voted",
+  data: { songId, voteCount },
+});
 
 // All servers (1, 2, 3...N) receive and broadcast to their clients
-redisSub.on('message', (channel, message) => {
-  io.to(spaceId).emit('song_voted', data)
-})
+redisSub.on("message", (channel, message) => {
+  io.to(spaceId).emit("song_voted", data);
+});
 ```
 
 ---
@@ -283,12 +296,14 @@ pnpm type-check
 ### Production Deployment (Railway)
 
 1. **Frontend (Vercel)**
+
 ```bash
 cd apps/web
 vercel --prod
 ```
 
 2. **Backend Services (Railway)**
+
 ```bash
 # Connect your GitHub repo to Railway
 # Railway will auto-detect and deploy:
@@ -297,6 +312,7 @@ vercel --prod
 ```
 
 3. **Database & Redis**
+
 - PostgreSQL: Use Neon or Supabase managed database
 - Redis: Use Upstash managed Redis
 
