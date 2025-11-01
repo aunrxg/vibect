@@ -1,0 +1,46 @@
+{
+  "name": "@vibect/db",
+  "version": "0.0.0",
+  "description": "Database utilities for Vibect",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:create": "prisma migrate dev --create-only",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset",
+    "postinstall": "prisma generate"
+  },
+  "keywords": [
+    "prisma",
+    "database",
+    "vibect",
+    "postgresql"
+  ],
+  "author": "aunrxg",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@vibect/typescript-config": "workspace:*",
+    "prisma": "^6.18.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.18.0"
+  }
+}
