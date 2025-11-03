@@ -1,0 +1,14 @@
+{
+  "extends": "@vibect/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "incremental": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test"]
+}
