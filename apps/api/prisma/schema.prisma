@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // url       = env("DIRECT_URL")  // commented because it might break
+}
+    
+// User model
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
+  avatarUrl   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  spaces      Space[]
+  votes       Votes[]
+  songs       Songs[]
+  memberships SpaceMember[]
+
+  @@map("users")
+}
+
+//space model
+model Space {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean     @default(true)
+  inviteCode  String      @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  ownerId    String
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  songs        Songs[]
+  memberships  SpaceMember[]
+
+  @@index([ownerId])
+  @@index([inviteCode])
+  @@map("spaces")
+}
+
+//space membership model
+model SpaceMember {
+  id        String        @id @default(cuid())
+  userId    String
+  spaceId   String
+  role      MemberRole    @default(MEMBER) // roles: member, admin
+  joinedAt  DateTime      @default(now())
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space     Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spaceId])
+  @@index([spaceId])
+  @@index([userId])
+  @@map("space_members")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// songs model
+model Songs {
+  id String @id @default(cuid())
+  youtubeId String
+  title String
+  artist String?
+  thumbnailUrl String?
+  duration Int // duration in seconds
+  addedAt DateTime @default(now())
+  playedAt DateTime?
+
+  spaceId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  addedById String
+  addedBy User @relation(fields: [addedById], references: [id])
+
+  votes Votes[]
+
+  @@index([spaceId, playedAt])
+  @@index([addedById])
+  @@index([youtubeId])
+  @@map("songs")
+}
+
+// votes model
+model Votes {
+  id String @id @default(cuid())
+  value Int @default(1) // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  songId String
+  song Songs @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, userId])
+  @@index([songId])
+  @@index([userId])
+  @@map("votes")
+}
+
+

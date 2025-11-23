@@ -1,7 +1,9 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "globalEnv": [
-    "NODE_ENV"
+    "NODE_ENV",
+    "DATABASE_URL",
+    "DIRECT_URL"
   ],
   "ui": "tui",
   "tasks": {

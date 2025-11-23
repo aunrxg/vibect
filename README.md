@@ -1,8 +1,9 @@
 <div align="center">
-  <img src=".github/assets/logo.svg" alt="Vibect Logo" width="200" height="200" />
-  
-  <h1>Vibect</h1>
-  <p><strong>Democratic music streaming for everyone.</strong></p>
+  <a href="https://github.com/aunrxg/vibect">
+    <img src=".github/assets/logo.svg" alt="Vibect Logo" width="200" height="200" />
+    <h1>Vibect</h1>
+    <p><strong>Democratic music streaming for everyone.</strong></p>
+  </a>
   
   <p>
     <a href="#-about">About</a> •
