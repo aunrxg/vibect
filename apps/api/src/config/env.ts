@@ -1,5 +1,4 @@
 import { z, ZodError } from "zod";
-import "dotenv/config";
 
 const envSchema = z.object({
   NODE_ENV: z
@@ -14,7 +13,12 @@ const envSchema = z.object({
   CORS_ORIGIN: z.url().default("http://localhost:3000"),
 
   SUPABASE_URL: z.url(),
-  SUPABASE_ANON_KEY: z.url(),
+  SUPABASE_ANON_KEY: z.string(),
+
+  //logging
+  LOG_LEVEL: z
+    .enum(["trace", "debug", "info", "warn", "error", "fatal"])
+    .default("info"),
 });
 
 export type Env = z.infer<typeof envSchema>;

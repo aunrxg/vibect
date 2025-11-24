@@ -18,6 +18,10 @@ export const config = {
     url: env.SUPABASE_URL,
     anonKey: env.SUPABASE_ANON_KEY,
   },
+
+  logging: {
+    level: env.LOG_LEVEL,
+  },
 };
 
 export { env };
