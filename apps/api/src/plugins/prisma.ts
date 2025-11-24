@@ -1,6 +1,7 @@
+// we don't need this, use @vibect/db directly. DO NOT CREATE NEW INSTANCE
 import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { prisma } from "@vibect/db";
+import { prisma } from "../lib/prisma";
 
 declare module "fastify" {
   interface FastifyInstance {
