@@ -1,10 +1,20 @@
 import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { ZodError } from "zod";
+import { AppError } from "../utils/error";
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.setErrorHandler((error, request, reply) => {
-    //zod validation error
+    // 1. Handle custorm AppError instances
+    if (error instanceof AppError) {
+      return reply.status(error.statusCode).send({
+        statusCode: error.statusCode,
+        message: error.message,
+        code: error.code,
+      });
+    }
+
+    // 2. zod validation error
     if (error instanceof ZodError) {
       return reply.status(400).send({
         statusCode: 400,
@@ -14,7 +24,7 @@ const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    //prisma error
+    // 3. prisma error
     if (error.name == "PrismaClientKnownRequestError") {
       const { code } = error as { code: string };
 
@@ -30,14 +40,41 @@ const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
             statusCode: 400,
             error: "Database Error",
             messages: "Database operation failed",
+            details:
+              process.env.NODE_ENV === "development"
+                ? error.message
+                : undefined,
           });
       }
     }
 
-    // log error
-    fastify.log.error({ err: error, reqId: request.id }, "unhandled error");
+    if (error.name === "PrismaClientInitializationError") {
+      fastify.log.error("Prisma Init Error: ");
+      return reply.status(500).send({
+        statusCode: 500,
+        error: "Database Connection Error",
+        message: "Could not connect to database",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
 
-    // default error
+    // 4. fastify validation errors
+    if (error.validation) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: "Validation Error",
+        message: error.message,
+        details: error.validation,
+      });
+    }
+
+    // 5. log error
+    if (error.statusCode !== 404) {
+      fastify.log.error({ err: error, reqId: request.id }, "Unhandled error");
+    }
+
+    // 6. default error
     return reply.status(error.statusCode || 500).send({
       statusCode: error.statusCode || 500,
       error: error.name || "Internal server error",
