@@ -1,12 +1,14 @@
 export class AppError extends Error {
   constructor(
-    public statusCode: number,
-    public message: string,
-    public code?: string,
-    public details?: unknown,
+    public readonly statusCode: number,
+    public readonly message: string,
+    public readonly code?: string,
+    public readonly details?: unknown,
+    public readonly options?: { cause?: unknown },
   ) {
-    super(message);
+    super(message, options);
     this.name = this.constructor.name;
+    this.cause = options?.cause;
     Error.captureStackTrace(this, this.constructor);
   }
 
@@ -14,7 +16,10 @@ export class AppError extends Error {
     return {
       statusCode: this.statusCode,
       error: this.name,
-      message: this.message,
+      message:
+        this.statusCode === 500 && process.env.NODE_ENV === "production"
+          ? "Internal Server Error"
+          : this.message,
       code: this.code,
       details: this.details,
     };

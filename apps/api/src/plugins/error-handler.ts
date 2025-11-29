@@ -1,54 +1,52 @@
 import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { ZodError } from "zod";
-import { AppError } from "../utils/error";
+import { AppError, BadRequestError, ValidationError } from "../utils/error";
+import { Prisma } from "../generated/prisma/client";
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.setErrorHandler((error, request, reply) => {
     // 1. Handle custorm AppError instances
     if (error instanceof AppError) {
-      return reply.status(error.statusCode).send({
-        statusCode: error.statusCode,
-        message: error.message,
-        code: error.code,
-      });
+      fastify.log.error(error, "AppError caught");
+      return reply.status(error.statusCode).send(error.toJson());
     }
 
     // 2. zod validation error
     if (error instanceof ZodError) {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: "Validation Error",
-        message: "Invalid request data",
-        details: error.issues,
-      });
+      return reply
+        .status(400)
+        .send(
+          new ValidationError("Invalid request data", error.issues).toJson(),
+        );
     }
 
     // 3. prisma error
-    if (error.name == "PrismaClientKnownRequestError") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
       const { code } = error as { code: string };
 
       switch (code) {
         case "P2002": // unique constraint
-          return reply.status(409).send({
-            statusCode: 409,
-            error: "Conflict",
-            message: "Duplicate record violation",
-          });
+          return reply
+            .status(409)
+            .send(new BadRequestError("Duplicate record violation").toJson());
+
         default:
           return reply.status(400).send({
             statusCode: 400,
             error: "Database Error",
-            messages: "Database operation failed",
-            details:
+            messages:
               process.env.NODE_ENV === "development"
                 ? error.message
-                : undefined,
+                : "Database operation failed",
+            details:
+              process.env.NODE_ENV === "development" ? error.meta : undefined,
           });
       }
     }
 
-    if (error.name === "PrismaClientInitializationError") {
+    // 4. Prisma Initialization failure
+    if (error instanceof Prisma.PrismaClientInitializationError) {
       fastify.log.error("Prisma Init Error: ");
       return reply.status(500).send({
         statusCode: 500,
@@ -59,26 +57,28 @@ const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    // 4. fastify validation errors
+    // 5. fastify validation errors
     if (error.validation) {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: "Validation Error",
-        message: error.message,
-        details: error.validation,
-      });
+      return reply
+        .status(400)
+        .send(
+          new ValidationError("Validation Error", error.validation).toJson(),
+        );
     }
 
-    // 5. log error
+    // 6. log error
     if (error.statusCode !== 404) {
       fastify.log.error({ err: error, reqId: request.id }, "Unhandled error");
     }
 
-    // 6. default error
+    // 7. default error
     return reply.status(error.statusCode || 500).send({
       statusCode: error.statusCode || 500,
-      error: error.name || "Internal server error",
-      message: error.message || "Something went wrong",
+      error: error.name || "INTERNAL_SERVER_ERROR",
+      message:
+        error.statusCode === 500 && process.env.NODE_ENV === "production"
+          ? "Internal Server Error"
+          : error.message,
     });
   });
 

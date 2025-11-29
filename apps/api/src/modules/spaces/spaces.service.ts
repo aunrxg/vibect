@@ -3,10 +3,12 @@ import {
   CreateSpaceInput,
   DeleteSpaceInput,
   GetSpaceInput,
+  ListPublicSpacesInput,
   UpdateSpaceInput,
 } from "./spaces.schema";
 import { ForbiddenError, NotFoundError } from "../../utils/error";
 import { generateInviteCodes } from "../../utils/helpers";
+import { calculatePagination } from "../../utils/response";
 
 export class SpaceService {
   constructor(private app: FastifyInstance) {}
@@ -69,10 +71,15 @@ export class SpaceService {
     return space;
   }
 
-  async listPublicSpaces() {
-    this.app.log.info("Starting query...");
+  async listPublicSpaces(input: ListPublicSpacesInput) {
+    const { page, limit } = input;
+    const total = await this.app.prisma.space.count({
+      where: { isPublic: true },
+    });
+
     const spaces = await this.app.prisma.space.findMany({
       where: { isPublic: true },
+      skip: (page - 1) * limit,
       include: {
         owner: {
           select: { id: true, name: true, email: true },
@@ -82,10 +89,10 @@ export class SpaceService {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 50,
+      take: limit,
     });
 
-    return spaces;
+    return { spaces, meta: calculatePagination(page, limit, total) };
   }
 
   async updateSpace(input: UpdateSpaceInput, userId: string) {

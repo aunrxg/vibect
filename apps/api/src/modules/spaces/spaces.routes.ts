@@ -4,9 +4,16 @@ import {
   createSpaceSchema,
   deleteSpaceSchema,
   getSpaceSchema,
+  listPublicSpacesSchema,
   updateSpaceSchema,
 } from "./spaces.schema";
 import { authenticate, optionalAuth } from "../../middleware/auth.middlware";
+import {
+  HttpStatus,
+  sendCreated,
+  sendPaginated,
+  sendSuccess,
+} from "../../utils/response";
 
 const spaceRoute: FastifyPluginAsync = async (fastify) => {
   const spaceService = new SpaceService(fastify);
@@ -17,11 +24,13 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     {
       preHandler: [optionalAuth],
     },
-    async () => {
-      fastify.log.info("Fetching public spaces...");
-      const spaces = await spaceService.listPublicSpaces();
-      fastify.log.info(`Found ${spaces.length} spaces`);
-      return { data: spaces };
+    async (request, reply) => {
+      const { page, limit } = listPublicSpacesSchema.parse(request.query);
+      const { spaces, meta } = await spaceService.listPublicSpaces({
+        page,
+        limit,
+      });
+      return sendPaginated(reply, spaces, meta);
     },
   );
 
@@ -31,10 +40,15 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     {
       preHandler: [optionalAuth],
     },
-    async (request, _) => {
+    async (request, reply) => {
       const params = getSpaceSchema.parse(request.params);
       const space = await spaceService.getSpace(params);
-      return { data: space };
+      return sendSuccess(
+        reply,
+        space,
+        "successfully get the space with ID",
+        HttpStatus.OK,
+      );
     },
   );
 
@@ -47,7 +61,12 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const body = createSpaceSchema.parse(request.body);
       const space = await spaceService.createSpace(body, request.user!.id);
-      return reply.status(201).send({ data: space });
+      return sendCreated(
+        reply,
+        space,
+        "successfully created space",
+        HttpStatus.CREATED,
+      );
     },
   );
 
@@ -57,14 +76,19 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     {
       preHandler: [authenticate],
     },
-    async (request, _) => {
+    async (request, reply) => {
       const params = updateSpaceSchema.parse(request.params);
       const body = updateSpaceSchema.omit({ id: true }).parse(request.body);
       const space = await spaceService.updateSpace(
         { ...params, ...body },
         request.user!.id,
       );
-      return { data: space };
+      return sendSuccess(
+        reply,
+        space,
+        "space updated successfully",
+        HttpStatus.OK,
+      );
     },
   );
 
@@ -74,10 +98,15 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     {
       preHandler: [authenticate],
     },
-    async (request, _) => {
+    async (request, reply) => {
       const params = deleteSpaceSchema.parse(request.params);
       const result = await spaceService.deleteSpace(params, request.user!.id);
-      return { data: result };
+      return sendSuccess(
+        reply,
+        result,
+        "space deleted successfully",
+        HttpStatus.OK,
+      );
     },
   );
 };
