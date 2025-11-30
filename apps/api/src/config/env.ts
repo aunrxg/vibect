@@ -15,6 +15,9 @@ const envSchema = z.object({
   SUPABASE_URL: z.url(),
   SUPABASE_ANON_KEY: z.string(),
 
+  //redis
+  REDIS_URL: z.url(),
+
   //logging
   LOG_LEVEL: z
     .enum(["trace", "debug", "info", "warn", "error", "fatal"])

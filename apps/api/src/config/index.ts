@@ -19,8 +19,17 @@ export const config = {
     anonKey: env.SUPABASE_ANON_KEY,
   },
 
+  redis: {
+    url: env.REDIS_URL,
+  },
+
   logging: {
     level: env.LOG_LEVEL,
+  },
+
+  rateLimit: {
+    max: 100,
+    timeWindow: "15 minutes",
   },
 };
 

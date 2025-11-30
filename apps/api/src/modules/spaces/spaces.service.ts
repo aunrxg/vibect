@@ -9,6 +9,7 @@ import {
 import { ForbiddenError, NotFoundError } from "../../utils/error";
 import { generateInviteCodes } from "../../utils/helpers";
 import { calculatePagination } from "../../utils/response";
+import { CACHE_KEYS, CACHE_TTL } from "../../config/constants";
 
 export class SpaceService {
   constructor(private app: FastifyInstance) {}
@@ -42,12 +43,21 @@ export class SpaceService {
     // create space membership
 
     // cache result
+    await this.app.redis.setex(
+      CACHE_KEYS.SPACE(space.id),
+      CACHE_TTL.LARGE,
+      JSON.stringify(space),
+    );
 
     return space;
   }
 
   async getSpace(input: GetSpaceInput) {
     // fetch from cache
+    const cached = await this.app.redis.get(CACHE_KEYS.SPACE(input.id));
+    if (cached) {
+      return JSON.parse(cached);
+    }
 
     // from db
     const space = await this.app.prisma.space.findUnique({
@@ -67,6 +77,11 @@ export class SpaceService {
     }
 
     // cache result
+    await this.app.redis.setex(
+      CACHE_KEYS.SPACE(space.id),
+      CACHE_TTL.LARGE,
+      JSON.stringify(space),
+    );
 
     return space;
   }
@@ -119,7 +134,8 @@ export class SpaceService {
       },
     });
 
-    // update cache
+    // invalidate cache
+    await this.app.redis.del(CACHE_KEYS.SPACE(id));
 
     return updated;
   }
@@ -142,7 +158,8 @@ export class SpaceService {
       where: { id: input.id },
     });
 
-    // update cache
+    // invalidate cache
+    await this.app.redis.del(CACHE_KEYS.SPACE(input.id));
 
     return { success: true };
   }
