@@ -45,7 +45,7 @@ export class SpaceService {
     // cache result
     await this.app.redis.setex(
       CACHE_KEYS.SPACE(space.id),
-      CACHE_TTL.LARGE,
+      CACHE_TTL.LONG,
       JSON.stringify(space),
     );
 
@@ -79,7 +79,7 @@ export class SpaceService {
     // cache result
     await this.app.redis.setex(
       CACHE_KEYS.SPACE(space.id),
-      CACHE_TTL.LARGE,
+      CACHE_TTL.LONG,
       JSON.stringify(space),
     );
 

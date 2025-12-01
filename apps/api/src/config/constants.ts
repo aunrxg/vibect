@@ -17,7 +17,7 @@ export const CACHE_KEYS = {
 export const CACHE_TTL = {
   SHORT: 60,
   MEDIUM: 300,
-  LARGE: 3600,
+  LONG: 3600,
 };
 
 export const WS_EVENTS = {
