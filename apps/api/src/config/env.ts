@@ -18,6 +18,9 @@ const envSchema = z.object({
   //redis
   REDIS_URL: z.url(),
 
+  //yt
+  YOUTUBE_API_KEY: z.string(),
+
   //logging
   LOG_LEVEL: z
     .enum(["trace", "debug", "info", "warn", "error", "fatal"])

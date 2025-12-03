@@ -23,6 +23,10 @@ export const config = {
     url: env.REDIS_URL,
   },
 
+  youtube: {
+    key: env.YOUTUBE_API_KEY,
+  },
+
   logging: {
     level: env.LOG_LEVEL,
   },
