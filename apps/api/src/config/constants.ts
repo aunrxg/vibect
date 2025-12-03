@@ -1,6 +1,6 @@
 // redis channels
 export const REDIS_CHANNELS = {
-  SUPABASE_EVENTS: "space:events",
+  SPACE_EVENTS: "space:events",
   PLAYBACK_EVENTS: "playback:events",
   VOTE_EVENTS: "vote:events",
 };

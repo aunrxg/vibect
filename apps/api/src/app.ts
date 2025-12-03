@@ -10,6 +10,7 @@ import auth from "./plugins/auth";
 
 // routes
 import spaceRoute from "./modules/spaces/spaces.routes";
+import songRoutes from "./modules/songs/songs.routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -48,7 +49,8 @@ export async function buildApp() {
   });
 
   // routes
-  app.register(spaceRoute, { prefix: "/api/spaces" });
+  app.register(spaceRoute, { prefix: "/api/v1/spaces" });
+  app.register(songRoutes, { prefix: "/api/v1/songs" });
 
   return app;
 }
