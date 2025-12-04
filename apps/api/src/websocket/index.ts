@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import { ConnectionManager } from "./connection-manager";
 import { WebSocketHandlers } from "./handlers";
@@ -24,8 +24,8 @@ export async function setupWebSocket(fastify: FastifyInstance) {
   await redisSubscriber.subscribe();
 
   // ws routes
-  fastify.get("/ws", { websocket: true }, (connection, _) => {
-    const socket = (connection as any).socket as AuthenticatedWebSocket;
+  fastify.get("/ws", { websocket: true }, (s, _) => {
+    const socket = s as AuthenticatedWebSocket;
 
     socket.clientId = randomBytes(16).toString("hex");
     socket.isAlive = true;
@@ -52,7 +52,7 @@ export async function setupWebSocket(fastify: FastifyInstance) {
     });
 
     // message
-    socket.on("message", async (data: Buffer) => {
+    socket.on("message", async (data: Buffer, request: FastifyRequest) => {
       try {
         const message: WSMessage = JSON.parse(data.toString());
         const { type, data: payload } = message;
@@ -70,7 +70,7 @@ export async function setupWebSocket(fastify: FastifyInstance) {
             break;
 
           case WSEvents.TIME_SYNC:
-            await handlers.handleTimeSync(socket, payload);
+            await handlers.handleTimeSync(socket, payload, request);
             break;
 
           case WSEvents.PING:

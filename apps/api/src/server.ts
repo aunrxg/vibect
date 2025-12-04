@@ -12,9 +12,9 @@ async function start() {
     });
 
     app.log.info(`server listening on http://${config.host}:${config.port}`);
-    // app.log.info(`
-    //   websocket available at ws://${config.host}:${config.port}/ws
-    // `);
+    app.log.info(`
+      websocket available at ws://${config.host}:${config.port}/ws
+    `);
     process.on("SIGINT", () => {
       console.log("Shutting down...");
       app.close().then(() => process.exit(0));

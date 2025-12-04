@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest } from "fastify";
 import { ConnectionManager } from "./connection-manager";
 import {
   AuthenticatedWebSocket,
@@ -7,6 +7,7 @@ import {
   WSEvents,
 } from "./types";
 import { CACHE_KEYS } from "../config/constants";
+import { NTPService } from "../modules/playback/ntp.service";
 
 export class WebSocketHandlers {
   constructor(
@@ -147,14 +148,14 @@ export class WebSocketHandlers {
   handleTimeSync(
     socket: AuthenticatedWebSocket,
     payload: TimeSyncPayload,
+    request: FastifyRequest,
   ): void {
     const { clientTimeStamp } = payload;
-    const serverTimeStamp = Date.now();
+    const ntpService = new NTPService(request.server);
 
-    this.sendMessage(socket, WSEvents.TIME_SYNC_RESPONSE, {
-      clientTimeStamp,
-      serverTimeStamp,
-    });
+    const response = ntpService.processTimeSyncRequest(clientTimeStamp);
+
+    this.sendMessage(socket, WSEvents.TIME_SYNC_RESPONSE, response);
   }
 
   handlePing(socket: AuthenticatedWebSocket): void {

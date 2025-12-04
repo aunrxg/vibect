@@ -6,7 +6,7 @@ import { config } from "../config";
 declare module "fastify" {
   interface FastifyInstance {
     redis: Redis;
-    subRedis: Redis;
+    redisSub: Redis;
   }
 }
 
@@ -22,11 +22,11 @@ const redisPlugin: FastifyPluginAsync = async (fastify) => {
   const redisSub = new Redis(config.redis.url);
 
   redis.on("error", (err) => {
-    fastify.log.error("Redis Client Error: ");
+    fastify.log.error({ err }, "Redis Client Error: ");
   });
 
-  redis.on("error", (err) => {
-    fastify.log.error("Redis Sub Client Error: ");
+  redisSub.on("error", (err) => {
+    fastify.log.error({ err }, "Redis Sub Client Error: ");
   });
 
   fastify.decorate("redis", redis);

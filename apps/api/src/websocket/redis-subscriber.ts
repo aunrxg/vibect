@@ -15,9 +15,9 @@ export class RedisSubscriber {
       REDIS_CHANNELS.VOTE_EVENTS,
     ];
 
-    await this.app.subRedis.subscribe(...channels);
+    await this.app.redisSub.subscribe(...channels);
 
-    this.app.subRedis.on("message", (channel, message) => {
+    this.app.redisSub.on("message", (channel, message) => {
       this.handleRedisMessage(channel, message);
     });
 
@@ -47,7 +47,7 @@ export class RedisSubscriber {
   }
 
   async unsubscribe(): Promise<void> {
-    await this.app.subRedis.unsubscribe();
+    await this.app.redisSub.unsubscribe();
     this.app.log.info(`Unsubscribed from Redis channels`);
   }
 }

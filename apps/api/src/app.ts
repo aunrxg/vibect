@@ -13,6 +13,7 @@ import spaceRoute from "./modules/spaces/spaces.routes";
 import songRoutes from "./modules/songs/songs.routes";
 import votesRoutes from "./modules/vote/vote.routes";
 import { setupWebSocket } from "./websocket";
+import redis from "./plugins/redis";
 
 export async function buildApp() {
   const app = Fastify({
@@ -41,6 +42,10 @@ export async function buildApp() {
   await app.register(errorHandler);
   await app.register(prismaPlugin);
   await app.register(auth);
+  await app.register(redis);
+
+  // websocket server
+  await setupWebSocket(app);
 
   // health check
   app.get("/health", async () => {
@@ -49,9 +54,6 @@ export async function buildApp() {
       timestamp: new Date().toISOString(),
     };
   });
-
-  // websocket server
-  await setupWebSocket(app);
 
   // routes
   app.register(spaceRoute, { prefix: "/api/v1/spaces" });
