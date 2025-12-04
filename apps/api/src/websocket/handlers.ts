@@ -1,0 +1,178 @@
+import { FastifyInstance } from "fastify";
+import { ConnectionManager } from "./connection-manager";
+import {
+  AuthenticatedWebSocket,
+  JoinSpacePayload,
+  TimeSyncPayload,
+  WSEvents,
+} from "./types";
+import { CACHE_KEYS } from "../config/constants";
+
+export class WebSocketHandlers {
+  constructor(
+    private app: FastifyInstance,
+    private connectionManager: ConnectionManager,
+  ) {}
+
+  async handleJoinSpace(
+    socket: AuthenticatedWebSocket,
+    payload: JoinSpacePayload,
+  ): Promise<void> {
+    const { spaceId, token } = payload;
+
+    try {
+      const space = await this.app.prisma.space.findUnique({
+        where: { id: spaceId },
+      });
+
+      if (!space) {
+        this.sendError(socket, "Space not found");
+        return;
+      }
+
+      // authenticate user from token
+      if (token) {
+        try {
+          const {
+            data: { user },
+          } = await this.app.supabase.auth.getUser(token);
+          if (user) {
+            socket.userId = user.id;
+          }
+        } catch (error) {
+          this.app.log.warn("Failed to authenticate websocket user: ");
+          console.error(error);
+        }
+      }
+
+      // add to space
+      this.connectionManager.addToSpace(spaceId, socket);
+
+      // send current playback state
+      const playbackState = await this.app.redis.get(
+        CACHE_KEYS.PLAYBACK(spaceId),
+      );
+
+      if (playbackState) {
+        this.sendMessage(
+          socket,
+          WSEvents.PLAYBACK_UPDATED,
+          JSON.parse(playbackState),
+        );
+      }
+
+      //send current queue
+      const songs = await this.app.prisma.songs.findMany({
+        where: {
+          spaceId,
+          playedAt: null,
+        },
+        include: {
+          votes: true,
+          addedBy: {
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      });
+
+      const songsWithScores = songs.map((song) => ({
+        ...song,
+        score: song.votes.reduce((sum, v) => sum + v.value, 0),
+      }));
+
+      songsWithScores.sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+      });
+
+      this.sendMessage(socket, WSEvents.QUEUE_UPDATED, {
+        queue: songsWithScores,
+      });
+
+      // notify others in space
+      this.connectionManager.broadcastToSpace(
+        spaceId,
+        JSON.stringify({
+          type: WSEvents.USER_JOINED,
+          data: {
+            clientId: socket.clientId,
+            userId: socket.userId,
+            memeberCount: this.connectionManager.getSpaceMemberCount(spaceId),
+          },
+        }),
+        socket,
+      );
+
+      this.app.log.info(`Client ${socket.clientId} joined space ${spaceId}`);
+    } catch (error) {
+      this.app.log.error("Error handling JOIN_SPACE");
+      this.sendError(socket, "Failed to join space");
+      console.error(error);
+    }
+  }
+
+  handleLeaveSpace(socket: AuthenticatedWebSocket): void {
+    // get space
+    const spaceId = socket.spaceId;
+
+    if (!spaceId) {
+      this.sendError(socket, "space not found");
+      return;
+    }
+
+    // notify other socket
+    this.connectionManager.broadcastToSpace(
+      spaceId,
+      JSON.stringify({
+        type: WSEvents.LEAVE_SPACE,
+        data: {
+          clientId: socket.clientId,
+          userId: socket.userId,
+          memeberCount: this.connectionManager.getSpaceMemberCount(spaceId) - 1,
+        },
+      }),
+      socket,
+    );
+
+    // leave
+    this.connectionManager.removeFromSpace(spaceId, socket);
+  }
+
+  handleTimeSync(
+    socket: AuthenticatedWebSocket,
+    payload: TimeSyncPayload,
+  ): void {
+    const { clientTimeStamp } = payload;
+    const serverTimeStamp = Date.now();
+
+    this.sendMessage(socket, WSEvents.TIME_SYNC_RESPONSE, {
+      clientTimeStamp,
+      serverTimeStamp,
+    });
+  }
+
+  handlePing(socket: AuthenticatedWebSocket): void {
+    socket.isAlive = true;
+    this.sendMessage(socket, WSEvents.PING, { timeStamp: Date.now() });
+  }
+
+  private sendMessage(
+    socket: AuthenticatedWebSocket,
+    type: string,
+    data?: any,
+  ): void {
+    if (socket.readyState === socket.OPEN) {
+      socket.send(JSON.stringify({ type, data }));
+    }
+  }
+
+  private sendError(socket: AuthenticatedWebSocket, message: string): void {
+    this.sendMessage(socket, WSEvents.ERROR, { message });
+  }
+}

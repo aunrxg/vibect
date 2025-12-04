@@ -12,6 +12,7 @@ import auth from "./plugins/auth";
 import spaceRoute from "./modules/spaces/spaces.routes";
 import songRoutes from "./modules/songs/songs.routes";
 import votesRoutes from "./modules/vote/vote.routes";
+import { setupWebSocket } from "./websocket";
 
 export async function buildApp() {
   const app = Fastify({
@@ -48,6 +49,9 @@ export async function buildApp() {
       timestamp: new Date().toISOString(),
     };
   });
+
+  // websocket server
+  await setupWebSocket(app);
 
   // routes
   app.register(spaceRoute, { prefix: "/api/v1/spaces" });
