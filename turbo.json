@@ -3,7 +3,8 @@
   "globalEnv": [
     "NODE_ENV",
     "DATABASE_URL",
-    "DIRECT_URL"
+    "DIRECT_URL",
+    "LOG_LEVEL"
   ],
   "ui": "tui",
   "tasks": {
