@@ -26,7 +26,12 @@ export class SongService {
     }
   }
 
-  async addSong(spaceId: string, youtubeUrl: string, userId: string) {
+  async addSong(
+    spaceId: string,
+    youtubeUrl: string,
+    isAnonymous: boolean = false,
+    userId: string,
+  ) {
     // extract video id from youtube url
     const videoId = YoutubeService.extractVideoId(youtubeUrl);
     if (!videoId) {
@@ -65,6 +70,9 @@ export class SongService {
       );
     }
 
+    // for anonymous users, we need a way to track who added it
+    // we can store it in a JSON field or create a separate tracking mechanism
+
     const song = await this.app.prisma.songs.create({
       data: {
         youtubeId: videoId,
@@ -73,20 +81,20 @@ export class SongService {
         duration: videoDetails.duration,
         thumbnailUrl: videoDetails.thumbnail,
         spaceId,
-        addedById: userId,
+        // if anon user store in addedByAnon field else in addedById
+        addedById: isAnonymous ? null : userId,
+        addedByAnonymous: isAnonymous ? userId : null,
       },
       include: {
-        addedBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
+        addedBy: true,
         votes: true,
+        anonymousVotes: true,
       },
     });
+
+    const score =
+      song.votes.reduce((sum, v) => sum + v.value, 0) +
+      song.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
 
     // update cache
     await this.app.redis.del(CACHE_KEYS.QUEUE(spaceId));
@@ -99,12 +107,34 @@ export class SongService {
         spaceId,
         data: {
           ...song,
-          score: 0,
+          score,
+          addedBy: isAnonymous
+            ? {
+                id: userId,
+                name: this.generateAnonymousName(userId), //TODO get name from frontend or generate
+                isAnonymous: true,
+              }
+            : song.addedById,
         },
       }),
     );
 
-    return song;
+    return {
+      ...song,
+      score,
+      addedBy: isAnonymous
+        ? {
+            id: userId,
+            name: this.generateAnonymousName(userId),
+            isAnonymous: true,
+          }
+        : song.addedBy,
+    };
+  }
+
+  private generateAnonymousName(anonymousId: string): string {
+    const shortId = anonymousId.slice(-6);
+    return `Guest ${shortId}`;
   }
 
   async getQueue(spaceId: string, page = 1, limit = 50) {
@@ -123,14 +153,8 @@ export class SongService {
         },
         include: {
           votes: true,
-          addedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatarUrl: true,
-            },
-          },
+          anonymousVotes: true,
+          addedBy: true,
         },
       }),
       this.app.prisma.songs.count({
@@ -142,10 +166,34 @@ export class SongService {
     ]);
 
     // vote score calculation
-    const songWithScores = songs.map((song) => ({
-      ...song,
-      score: song.votes.reduce((sum, vote) => sum + vote.value, 0),
-    }));
+    const songWithScores = songs.map((song) => {
+      const score =
+        song.votes.reduce((sum, vote) => sum + vote.value, 0) +
+        song.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
+
+      // who added
+      let addedBy;
+      if (song.addedBy) {
+        // registered user
+        addedBy = song.addedBy;
+      } else if (song.addedByAnonymous) {
+        // anonymous user
+        addedBy = {
+          id: song.addedByAnonymous,
+          name: this.generateAnonymousName(song.addedByAnonymous),
+          email: `${song.addedByAnonymous}@anonymous.local`,
+          avatarUrl: null,
+          isAnonymous: true,
+        };
+      }
+      return {
+        ...song,
+        score,
+        addedBy,
+        userVoteCount: song.votes.length,
+        anonymousVoteCount: song.anonymousVotes.length,
+      };
+    });
 
     // sort for queue
     songWithScores.sort((a, b) => {
@@ -166,7 +214,11 @@ export class SongService {
     };
   }
 
-  async deleteSong(songId: string, userId: string) {
+  async deleteSong(
+    songId: string,
+    userId: string,
+    isAnonymous: boolean = false,
+  ) {
     const song = await this.app.prisma.songs.findUnique({
       where: { id: songId },
       include: {
@@ -180,10 +232,17 @@ export class SongService {
     if (song.playedAt) {
       throw new BadRequestError("Cannot delete a song that has already played");
     }
-    if (song.addedById !== userId) {
-      throw new ForbiddenError("Only song adder or creator can delete a song");
-    }
 
+    const canDelete =
+      (isAnonymous && song.addedByAnonymous === userId) ||
+      (!isAnonymous && song.addedById === userId) ||
+      song.space.ownerId === userId;
+
+    if (!canDelete) {
+      throw new ForbiddenError(
+        "You can only delete songs you added or if you own the space",
+      );
+    }
     await this.app.prisma.songs.delete({
       where: { id: songId },
     });

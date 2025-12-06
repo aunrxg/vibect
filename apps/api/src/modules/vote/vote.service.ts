@@ -5,7 +5,12 @@ import { CACHE_KEYS, REDIS_CHANNELS } from "../../config/constants";
 export class VoteService {
   constructor(private app: FastifyInstance) {}
 
-  async vote(songId: string, userId: string, value: number) {
+  async vote(
+    songId: string,
+    userId: string,
+    value: number,
+    isAnonymous: boolean = false,
+  ) {
     if (![-1, 0, 1].includes(value)) {
       throw new BadRequestError(
         "Vote value must be -1(downvote), 0(revome), 1(upvote) only",
@@ -17,6 +22,7 @@ export class VoteService {
       include: {
         space: true,
         votes: true,
+        anonymousVotes: true,
       },
     });
 
@@ -43,47 +49,91 @@ export class VoteService {
     }
 
     let vote;
-    if (value === 0) {
-      try {
-        vote = await this.app.prisma.votes.delete({
+    if (isAnonymous) {
+      // handle anon vote
+      if (value === 0) {
+        //remove vote
+        try {
+          vote = await this.app.prisma.anonymousVote.delete({
+            where: {
+              songId_anonymousId: {
+                songId,
+                anonymousId: userId,
+              },
+            },
+          });
+        } catch (error) {
+          vote = null;
+          this.app.log.debug({ error }, "vote is null");
+        }
+      } else {
+        // upsert vote
+        vote = await this.app.prisma.anonymousVote.upsert({
+          where: {
+            songId_anonymousId: {
+              songId,
+              anonymousId: userId,
+            },
+          },
+          update: {
+            value,
+            updatedAt: new Date(),
+          },
+          create: {
+            songId,
+            anonymousId: userId,
+            value,
+          },
+        });
+      }
+    } else {
+      // handle registered user vote
+      if (value === 0) {
+        try {
+          vote = await this.app.prisma.votes.delete({
+            where: {
+              songId_userId: {
+                songId,
+                userId,
+              },
+            },
+          });
+        } catch (error) {
+          vote = null;
+          this.app.log.debug({ error }, "vote is null");
+        }
+      } else {
+        vote = await this.app.prisma.votes.upsert({
           where: {
             songId_userId: {
               songId,
               userId,
             },
           },
-        });
-      } catch (error) {
-        vote = null;
-      }
-    } else {
-      vote = await this.app.prisma.votes.upsert({
-        where: {
-          songId_userId: {
+          update: {
+            value,
+            updatedAt: new Date(),
+          },
+          create: {
             songId,
             userId,
+            value,
           },
-        },
-        update: {
-          value,
-          updatedAt: new Date(),
-        },
-        create: {
-          songId,
-          userId,
-          value,
-        },
-      });
+        });
+      }
     }
 
     const updatedSong = await this.app.prisma.songs.findUnique({
       where: { id: songId },
       include: {
         votes: true,
+        anonymousVotes: true,
       },
     });
 
-    const score = updatedSong!.votes.reduce((sum, v) => sum + v.value, 0);
+    const score =
+      updatedSong!.votes.reduce((sum, v) => sum + v.value, 0) +
+      updatedSong!.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
 
     // reorder queeu
     const queue = await this.getQueue(song.spaceId);
@@ -100,6 +150,7 @@ export class VoteService {
         data: {
           songId,
           userId,
+          isAnonymous,
           value,
           score,
           position,
@@ -116,6 +167,8 @@ export class VoteService {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+      songScore: score,
+      songPosition: position,
     };
   }
 
@@ -266,12 +319,15 @@ export class VoteService {
       },
       include: {
         votes: true,
+        anonymousVotes: true,
       },
     });
 
     const songsWithScore = songs.map((song) => ({
       ...song,
-      score: song.votes.reduce((sum, v) => sum + v.value, 0),
+      score:
+        song.votes.reduce((sum, v) => sum + v.value, 0) +
+        song.anonymousVotes.reduce((sum, v) => sum + v.value, 0),
     }));
 
     songsWithScore.sort((a, b) => {

@@ -11,6 +11,8 @@ declare module "fastify" {
     user?: {
       id: string;
       email: string;
+      name?: string;
+      isAnonymous?: boolean;
     };
   }
 }

@@ -89,8 +89,12 @@ model Songs {
   spaceId         String    @map("space_id")      @db.Uuid
   space           Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
-  addedById       String    @map("added_by_id")   @db.Uuid
-  addedBy         User      @relation(fields: [addedById], references: [id])
+  // optional for anon users
+  addedById       String?    @map("added_by_id")   @db.Uuid
+  addedBy         User?      @relation(fields: [addedById], references: [id])
+
+  // for anon ID
+  addedByAnonymous String?    @map("added_by_anonymous")
 
   votes           Votes[]
   anonymousVotes  anonymousVote[]

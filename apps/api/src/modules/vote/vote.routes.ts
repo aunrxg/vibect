@@ -1,6 +1,9 @@
 import { FastifyPluginAsync } from "fastify";
 import { VoteService } from "./vote.service";
-import { authenticate } from "../../middleware/auth.middlware";
+import {
+  authenticate,
+  authenticateOrAnonymous,
+} from "../../middleware/auth.middlware";
 import {
   getSongVotesSchema,
   getUserVoteSchema,
@@ -12,11 +15,11 @@ import { sendSuccess } from "../../utils/response";
 const votesRoutes: FastifyPluginAsync = async (fastify) => {
   const voteService = new VoteService(fastify);
 
-  //vote song
+  //vote song allow anon
   fastify.post(
     "/",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const body = voteSchema.parse(request.body);
@@ -25,6 +28,7 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
         body.songId,
         request.user!.id,
         body.value,
+        request.user!.isAnonymous,
       );
 
       return sendSuccess(
@@ -43,7 +47,7 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     "/:songId",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { songId } = removeVoteSchema.parse(request.params);
@@ -73,7 +77,7 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "song/:songId",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { songId } = getSongVotesSchema.parse(request.params);
