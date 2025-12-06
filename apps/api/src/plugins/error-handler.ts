@@ -47,7 +47,7 @@ const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
 
     // 4. Prisma Initialization failure
     if (error instanceof Prisma.PrismaClientInitializationError) {
-      fastify.log.error("Prisma Init Error: ");
+      fastify.log.error({ error }, "Prisma Init Error: ");
       return reply.status(500).send({
         statusCode: 500,
         error: "Database Connection Error",

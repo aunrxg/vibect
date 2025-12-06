@@ -112,9 +112,8 @@ export class WebSocketHandlers {
 
       this.app.log.info(`Client ${socket.clientId} joined space ${spaceId}`);
     } catch (error) {
-      this.app.log.error("Error handling JOIN_SPACE");
+      this.app.log.error({ error }, "Error handling JOIN_SPACE");
       this.sendError(socket, "Failed to join space");
-      console.error(error);
     }
   }
 

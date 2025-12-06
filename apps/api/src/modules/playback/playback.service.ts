@@ -24,8 +24,7 @@ export class PlaybackService {
       const data = await this.app.redis.get(CACHE_KEYS.PLAYBACK(spaceId));
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      this.app.log.error("Corrupted playback Redis state:");
-      console.error(error);
+      this.app.log.error({ error }, "Corrupted playback Redis state:");
       return null;
     }
   }

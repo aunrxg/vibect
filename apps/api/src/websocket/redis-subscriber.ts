@@ -41,8 +41,7 @@ export class RedisSubscriber {
 
       this.app.log.debug(`Broadcasted ${type} to space ${spaceId}`);
     } catch (error) {
-      this.app.log.error("Error handling Redis message");
-      console.error(error);
+      this.app.log.error({ error }, "Error handling Redis message");
     }
   }
 

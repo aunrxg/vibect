@@ -86,8 +86,7 @@ export async function setupWebSocket(fastify: FastifyInstance) {
             );
         }
       } catch (error) {
-        fastify.log.error("Error processing websocket message: ");
-        console.error(error);
+        fastify.log.error({ error }, "Error processing websocket message: ");
         socket.send(
           JSON.stringify({
             type: WSEvents.ERROR,

@@ -21,8 +21,7 @@ export class SongService {
       const result = await this.youtubeService.search(query, maxResult);
       return result;
     } catch (error) {
-      this.app.log.error("Youtube search Error: ");
-      console.error(error);
+      this.app.log.error({ error }, "Youtube search Error: ");
       throw new BadRequestError("Faild to search Youtube", error);
     }
   }
@@ -59,8 +58,7 @@ export class SongService {
     try {
       videoDetails = await this.youtubeService.getVideoById(videoId);
     } catch (error) {
-      this.app.log.error("Failed to fetch video details: ");
-      console.error(error);
+      this.app.log.error({ error }, "Failed to fetch video details: ");
       throw new BadRequestError(
         "Could not fetch video details. video may be unavailable",
         error,
