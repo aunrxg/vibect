@@ -3,7 +3,7 @@ import { SongService } from "./songs.service";
 import {
   authenticate,
   authenticateOrAnonymous,
-} from "../../middleware/auth.middlware";
+} from "../../middleware/auth.middleware";
 import {
   addSongSchema,
   deleteSongSchema,

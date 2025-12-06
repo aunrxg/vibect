@@ -1,9 +1,11 @@
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 export function generateRandomString(length: number): string {
-  return Array.from({ length }, () => {
-    ALPHABETS.charAt(Math.floor(Math.random() * ALPHABETS.length));
-  }).join("");
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += ALPHABETS[Math.floor(Math.random() * ALPHABETS.length)];
+  }
+  return result;
 }
 
 function addHyphens(code: string) {

@@ -73,7 +73,7 @@ export function sendCreated<T>(
   reply: FastifyReply,
   data: T,
   message = "Resource created successfully",
-  statusCode = HttpStatus.CREATED,
+  statusCode = 201,
 ): FastifyReply {
   return sendSuccess(reply, data, message, statusCode);
 }

@@ -16,7 +16,7 @@ export class SpaceService {
 
   private async generateUniqueInviteCode() {
     while (true) {
-      const code = generateInviteCodes(8);
+      const code = generateInviteCodes(8, true);
       const exists = await this.app.prisma.space.findUnique({
         where: { inviteCode: code },
       });
@@ -87,7 +87,7 @@ export class SpaceService {
   }
 
   async listPublicSpaces(input: ListPublicSpacesInput) {
-    const { page, limit } = input;
+    const { page = 1, limit = 20 } = input;
     const total = await this.app.prisma.space.count({
       where: { isPublic: true },
     });

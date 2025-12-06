@@ -7,7 +7,7 @@ import {
   listPublicSpacesSchema,
   updateSpaceSchema,
 } from "./spaces.schema";
-import { authenticate, optionalAuth } from "../../middleware/auth.middlware";
+import { authenticate, optionalAuth } from "../../middleware/auth.middleware";
 import {
   HttpStatus,
   sendCreated,
@@ -25,7 +25,9 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
       preHandler: [optionalAuth],
     },
     async (request, reply) => {
-      const { page, limit } = listPublicSpacesSchema.parse(request.query);
+      const { page = 1, limit = 20 } = listPublicSpacesSchema.parse(
+        request.query,
+      );
       const { spaces, meta } = await spaceService.listPublicSpaces({
         page,
         limit,
