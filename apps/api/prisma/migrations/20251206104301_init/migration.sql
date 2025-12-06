@@ -3,7 +3,7 @@ CREATE TYPE "MemberRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
     "avatarUrl" TEXT,
@@ -15,23 +15,23 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "spaces" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "isPublic" BOOLEAN NOT NULL DEFAULT true,
     "inviteCode" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "ownerId" TEXT NOT NULL,
+    "ownerId" UUID NOT NULL,
 
     CONSTRAINT "spaces_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "space_members" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "spaceId" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "spaceId" UUID NOT NULL,
     "role" "MemberRole" NOT NULL DEFAULT 'MEMBER',
     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -40,30 +40,42 @@ CREATE TABLE "space_members" (
 
 -- CreateTable
 CREATE TABLE "songs" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "youtubeId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "artist" TEXT,
     "thumbnailUrl" TEXT,
     "duration" INTEGER NOT NULL,
-    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "playedAt" TIMESTAMP(3),
-    "spaceId" TEXT NOT NULL,
-    "addedById" TEXT NOT NULL,
+    "added_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "played_at" TIMESTAMP(3),
+    "space_id" UUID NOT NULL,
+    "added_by_id" UUID NOT NULL,
 
     CONSTRAINT "songs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "votes" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "value" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "songId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "song_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
 
     CONSTRAINT "votes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "anonymous_votes" (
+    "id" UUID NOT NULL,
+    "anonymous_id" TEXT NOT NULL,
+    "value" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "song_id" UUID NOT NULL,
+
+    CONSTRAINT "anonymous_votes_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -88,22 +100,31 @@ CREATE INDEX "space_members_userId_idx" ON "space_members"("userId");
 CREATE UNIQUE INDEX "space_members_userId_spaceId_key" ON "space_members"("userId", "spaceId");
 
 -- CreateIndex
-CREATE INDEX "songs_spaceId_playedAt_idx" ON "songs"("spaceId", "playedAt");
+CREATE INDEX "songs_space_id_played_at_idx" ON "songs"("space_id", "played_at");
 
 -- CreateIndex
-CREATE INDEX "songs_addedById_idx" ON "songs"("addedById");
+CREATE INDEX "songs_added_by_id_idx" ON "songs"("added_by_id");
 
 -- CreateIndex
 CREATE INDEX "songs_youtubeId_idx" ON "songs"("youtubeId");
 
 -- CreateIndex
-CREATE INDEX "votes_songId_idx" ON "votes"("songId");
+CREATE INDEX "votes_song_id_idx" ON "votes"("song_id");
 
 -- CreateIndex
-CREATE INDEX "votes_userId_idx" ON "votes"("userId");
+CREATE INDEX "votes_user_id_idx" ON "votes"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "votes_songId_userId_key" ON "votes"("songId", "userId");
+CREATE UNIQUE INDEX "votes_song_id_user_id_key" ON "votes"("song_id", "user_id");
+
+-- CreateIndex
+CREATE INDEX "anonymous_votes_song_id_idx" ON "anonymous_votes"("song_id");
+
+-- CreateIndex
+CREATE INDEX "anonymous_votes_anonymous_id_idx" ON "anonymous_votes"("anonymous_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "anonymous_votes_song_id_anonymous_id_key" ON "anonymous_votes"("song_id", "anonymous_id");
 
 -- AddForeignKey
 ALTER TABLE "spaces" ADD CONSTRAINT "spaces_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -115,13 +136,16 @@ ALTER TABLE "space_members" ADD CONSTRAINT "space_members_userId_fkey" FOREIGN K
 ALTER TABLE "space_members" ADD CONSTRAINT "space_members_spaceId_fkey" FOREIGN KEY ("spaceId") REFERENCES "spaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "songs" ADD CONSTRAINT "songs_spaceId_fkey" FOREIGN KEY ("spaceId") REFERENCES "spaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "songs" ADD CONSTRAINT "songs_space_id_fkey" FOREIGN KEY ("space_id") REFERENCES "spaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "songs" ADD CONSTRAINT "songs_addedById_fkey" FOREIGN KEY ("addedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "songs" ADD CONSTRAINT "songs_added_by_id_fkey" FOREIGN KEY ("added_by_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "votes" ADD CONSTRAINT "votes_songId_fkey" FOREIGN KEY ("songId") REFERENCES "songs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "votes" ADD CONSTRAINT "votes_song_id_fkey" FOREIGN KEY ("song_id") REFERENCES "songs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "votes" ADD CONSTRAINT "votes_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "votes" ADD CONSTRAINT "votes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "anonymous_votes" ADD CONSTRAINT "anonymous_votes_song_id_fkey" FOREIGN KEY ("song_id") REFERENCES "songs"("id") ON DELETE CASCADE ON UPDATE CASCADE;

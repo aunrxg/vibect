@@ -11,12 +11,12 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // url       = env("DIRECT_URL")  // commented because it might break RAISE AN ISSUE
+  // url       = env("DIRECT_URL")  // commented because it might break || RAISE AN ISSUE ||
 }
     
 // User model
 model User {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())    @db.Uuid
   email       String    @unique
   name        String?
   avatarUrl   String?
@@ -33,7 +33,7 @@ model User {
 
 //space model
 model Space {
-  id          String      @id @default(cuid())
+  id          String      @id @default(uuid())  @db.Uuid
   name        String
   description String?
   isPublic    Boolean     @default(true)
@@ -41,8 +41,8 @@ model Space {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  ownerId    String
-  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String       @db.Uuid
+  owner      User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   songs        Songs[]
   memberships  SpaceMember[]
@@ -54,9 +54,9 @@ model Space {
 
 //space membership model
 model SpaceMember {
-  id        String        @id @default(cuid())
-  userId    String
-  spaceId   String
+  id        String        @id @default(uuid())   @db.Uuid
+  userId    String        @db.Uuid
+  spaceId   String        @db.Uuid
   role      MemberRole    @default(MEMBER) // roles: member, admin
   joinedAt  DateTime      @default(now())
 
@@ -77,22 +77,23 @@ enum MemberRole {
 
 // songs model
 model Songs {
-  id String @id @default(cuid())
-  youtubeId String
-  title String
-  artist String?
-  thumbnailUrl String?
-  duration Int // duration in seconds
-  addedAt DateTime @default(now())
-  playedAt DateTime?
+  id              String    @id @default(uuid())  @db.Uuid
+  youtubeId       String
+  title           String
+  artist          String?
+  thumbnailUrl    String?
+  duration        Int // duration in seconds
+  addedAt         DateTime  @default(now())       @map("added_at")
+  playedAt        DateTime? @map("played_at")
 
-  spaceId String
-  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceId         String    @map("space_id")      @db.Uuid
+  space           Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 
-  addedById String
-  addedBy User @relation(fields: [addedById], references: [id])
+  addedById       String    @map("added_by_id")   @db.Uuid
+  addedBy         User      @relation(fields: [addedById], references: [id])
 
-  votes Votes[]
+  votes           Votes[]
+  anonymousVotes  anonymousVote[]
 
   @@index([spaceId, playedAt])
   @@index([addedById])
@@ -102,16 +103,16 @@ model Songs {
 
 // votes model
 model Votes {
-  id String @id @default(cuid())
-  value Int @default(1) // 1 for upvote, -1 for downvote
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String      @id @default(uuid())  @db.Uuid
+  value       Int         @default(1) // 1 for upvote, -1 for downvote
+  createdAt   DateTime    @default(now())       @map("created_at")
+  updatedAt   DateTime    @updatedAt            @map("updated_at")
 
-  songId String
-  song Songs @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId      String      @map("song_id")       @db.Uuid
+  song        Songs       @relation(fields: [songId], references: [id], onDelete: Cascade)
 
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String      @map("user_id")       @db.Uuid
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([songId, userId])
   @@index([songId])
@@ -119,4 +120,18 @@ model Votes {
   @@map("votes")
 }
 
+model anonymousVote {
+  id            String    @id   @default(uuid())  @db.Uuid
+  anonymousId   String    @map("anonymous_id") // anon_xxx
+  value         Int // 1 or -1
+  createdAt     DateTime  @default(now())         @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
+  songId        String    @map("song_id")         @db.Uuid
+  song          Songs     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, anonymousId])
+  @@index([songId])
+  @@index([anonymousId])
+  @@map("anonymous_votes")
+}
