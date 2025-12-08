@@ -19,7 +19,7 @@ interface YouTubeVideoItem {
     };
   };
   contentDetails: {
-    duration: number;
+    duration: string;
   };
 }
 
@@ -28,7 +28,7 @@ export interface YoutubeVideo {
   title: string;
   artist: string;
   thumbnail: string;
-  duration: number; //in sec
+  duration: string; //in sec
 }
 
 export class YoutubeService {
