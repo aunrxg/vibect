@@ -65,7 +65,7 @@ export async function authenticateOrAnonymous(request: FastifyRequest) {
 
     const token = authHeader.substring(7);
 
-    if (token.startsWith("anon_")) {
+    if (token.startsWith("anon_") || token.startsWith("anon-")) {
       request.user = {
         id: token,
         email: `${token}@anonymous.local`,

@@ -9,8 +9,7 @@ export const deleteSongSchema = z.object({
   id: z.uuid().min(1, "song id is required"),
 });
 
-export const getQueueSchema = z.object({
-  spaceId: z.uuid(),
+export const getQueueQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(50),
 });
@@ -22,5 +21,5 @@ export const searchSongSchema = z.object({
 
 export type AddSongSchema = z.infer<typeof addSongSchema>;
 export type DeleteSongSchema = z.infer<typeof deleteSongSchema>;
-export type GetQueueSchema = z.infer<typeof getQueueSchema>;
+export type GetQueueSchema = z.infer<typeof getQueueQuerySchema>;
 export type SearchSongSchema = z.infer<typeof searchSongSchema>;

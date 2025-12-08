@@ -8,6 +8,7 @@ import {
 } from "../../utils/error";
 import { CACHE_KEYS, REDIS_CHANNELS } from "../../config/constants";
 import { calculatePagination } from "../../utils/response";
+import { parseISODurationToSeconds } from "../../utils/helpers";
 
 export class SongService {
   private youtubeService: YoutubeService;
@@ -70,6 +71,8 @@ export class SongService {
       );
     }
 
+    const fixedDuration = parseISODurationToSeconds(videoDetails.duration);
+
     // for anonymous users, we need a way to track who added it
     // we can store it in a JSON field or create a separate tracking mechanism
 
@@ -78,7 +81,7 @@ export class SongService {
         youtubeId: videoId,
         title: videoDetails.title,
         artist: videoDetails.artist,
-        duration: videoDetails.duration,
+        duration: fixedDuration,
         thumbnailUrl: videoDetails.thumbnail,
         spaceId,
         // if anon user store in addedByAnon field else in addedById

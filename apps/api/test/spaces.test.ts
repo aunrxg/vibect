@@ -103,14 +103,10 @@ describe("Spaces Module", () => {
         inviteCode: generateInviteCodes(8, true),
       });
 
-      console.log("Injecting GET /api/v1/spaces...");
       const response = await testApp.inject({
         method: "GET",
         url: "/api/v1/spaces",
       });
-      console.log(response.statusCode);
-      console.log("RAW BODY:", response.body);
-      console.log("PARSED:", response.json());
 
       expect(response.statusCode).toBe(200);
       // expect(response.json().data.meta.total).toHaveLength(2);

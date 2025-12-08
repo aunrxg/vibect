@@ -38,7 +38,7 @@ export function generateMockToken(userId: string): string {
 }
 
 export function generateAnonymousId(): string {
-  return `anon-${crypto.randomUUID()}`;
+  return `anon_${crypto.randomUUID()}`;
 }
 
 export async function authenticatedRequest(

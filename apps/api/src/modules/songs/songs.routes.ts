@@ -7,10 +7,10 @@ import {
 import {
   addSongSchema,
   deleteSongSchema,
-  getQueueSchema,
+  getQueueQuerySchema,
   searchSongSchema,
 } from "./songs.schema";
-import { sendSuccess } from "../../utils/response";
+import { HttpStatus, sendCreated, sendSuccess } from "../../utils/response";
 import { UnauthorizedError } from "../../utils/error";
 
 const songRoutes: FastifyPluginAsync = async (fastify) => {
@@ -31,19 +31,15 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
 
   // allow anon user
   fastify.get(
-    "queue/:spaceId",
+    "/queue/:spaceId",
     {
       preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { spaceId } = request.params as { spaceId: string };
-      const query = getQueueSchema.parse(request.query);
+      const { page = 1, limit = 50 } = getQueueQuerySchema.parse(request.query);
 
-      const results = await songsService.getQueue(
-        spaceId,
-        query.page,
-        query.limit,
-      );
+      const results = await songsService.getQueue(spaceId, page, limit);
       return sendSuccess(reply, results, "queue fetch successfully");
     },
   );
@@ -68,7 +64,12 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
         request.user.id,
       );
 
-      return sendSuccess(reply, song, "Song added successfully");
+      return sendCreated(
+        reply,
+        song,
+        "Song added successfully",
+        HttpStatus.CREATED,
+      );
     },
   );
 
@@ -102,14 +103,9 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { spaceId } = request.params as { spaceId: string };
-      const q = request.query as { limit: number; page: number };
-      const query = getQueueSchema.parse({ ...q, spaceId });
+      const { page = 1, limit = 50 } = getQueueQuerySchema.parse(request.query);
 
-      const result = await songsService.getHistory(
-        query.spaceId,
-        query.page,
-        query.limit,
-      );
+      const result = await songsService.getHistory(spaceId, page, limit);
 
       return sendSuccess(reply, result, "fetched space history successfully");
     },
