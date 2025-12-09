@@ -1,4 +1,4 @@
-import { Space, User } from "../src/generated/prisma/client";
+import { Songs, Space, User } from "../src/generated/prisma/client";
 import { prisma } from "../src/lib/prisma";
 import { generateInviteCodes } from "../src/utils/helpers";
 import { testApp } from "./setup";
@@ -27,6 +27,25 @@ export async function createTestSpace(
       isPublic: true,
       ownerId,
       inviteCode: generateInviteCodes(8, true),
+      ...overrides,
+    },
+  });
+}
+
+export async function createTestSong(
+  spaceId: string,
+  addedById: string,
+  overrides: Partial<Songs> = {},
+): Promise<Songs> {
+  return prisma.songs.create({
+    data: {
+      youtubeId: "dQw4w9WgXcQ",
+      title: "Test Song",
+      artist: "Test Artist",
+      thumbnailUrl: "https://example.com/thumb.jpg",
+      duration: 213,
+      spaceId,
+      addedById,
       ...overrides,
     },
   });

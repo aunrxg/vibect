@@ -75,7 +75,7 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
 
   //get all votes for a song
   fastify.get(
-    "song/:songId",
+    "/song/:songId",
     {
       preHandler: [authenticateOrAnonymous],
     },

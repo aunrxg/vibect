@@ -33,15 +33,19 @@ export class VoteService {
       throw new BadRequestError("Cannot vote a song that has already played");
     }
 
+    let membership;
+
     // check membership
-    const membership = await this.app.prisma.spaceMember.findUnique({
-      where: {
-        userId_spaceId: {
-          userId,
-          spaceId: song.spaceId,
+    if (!isAnonymous) {
+      membership = await this.app.prisma.spaceMember.findUnique({
+        where: {
+          userId_spaceId: {
+            userId,
+            spaceId: song.spaceId,
+          },
         },
-      },
-    });
+      });
+    }
 
     // allow vote if space is public or user is memeber
     if (!song.space.isPublic && !membership) {
