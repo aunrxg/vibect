@@ -21,7 +21,6 @@ import Link from "next/link";
 import {
   IconBrandDiscord,
   IconBrandGithub,
-  IconBrandGithubFilled,
   IconBrandGoogle,
 } from "@tabler/icons-react";
 
