@@ -299,16 +299,29 @@ export class VoteService {
       },
     });
 
-    const songsWithScore = songs.map((song) => ({
-      id: song.id,
-      title: song.title,
-      artist: song.artist,
-      thumbnail: song.thumbnailUrl,
-      addedBy: song.addedBy,
-      score: song.votes.reduce((sum, v) => sum + v.value, 0),
-      upvotes: song.votes.filter((v) => v.value === 1).length,
-      downvotes: song.votes.filter((v) => v.value === -1).length,
-    }));
+    const songsWithScore = songs.map((song) => {
+      // very very niche edgecase error
+      const votes = song.votes || [];
+      const score = votes.reduce((sum, v) => sum + (Number(v.value) || 0), 0);
+
+      return {
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        thumbnail: song.thumbnailUrl,
+        addedBy: song.addedBy
+          ? {
+              id: song.addedBy.id,
+              name: song.addedBy.name,
+              avatarUrl: song.addedBy.avatarUrl,
+              email: song.addedBy.email,
+            }
+          : null,
+        score: score,
+        upvotes: votes.filter((v) => v.value === 1).length,
+        downvotes: votes.filter((v) => v.value === -1).length,
+      };
+    });
 
     songsWithScore.sort((a, b) => b.score - a.score);
 

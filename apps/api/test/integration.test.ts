@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { testApp } from "./setup";
 import { createTestUser, authenticatedRequest } from "./helpers";
-import { User } from "../src/generated/prisma/client";
+import { Space, User } from "../src/generated/prisma/client";
 
 describe("Integration: Complete User Flows", () => {
   describe("Scenario 1: New User Creates Space and Manages Queue", () => {
@@ -122,6 +122,203 @@ describe("Integration: Complete User Flows", () => {
       expect(updateSpaceResponse.json().data.name).toBe(
         "Updated Playlist Name",
       );
+    }, 60000);
+  });
+
+  describe("Scenerio 2: Multiple Users Collaborating in space", () => {
+    let user1: User;
+    let user2: User;
+    let user3: User;
+    let space: Space;
+
+    beforeEach(async () => {
+      user1 = await createTestUser({ email: "user1@test.com", name: "One" });
+      user2 = await createTestUser({ email: "user2@test.com", name: "Two" });
+      user3 = await createTestUser({ email: "user3@test.com", name: "Three" });
+
+      // user 1 creates space
+      const spaceResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/spaces",
+        user1.id,
+        { name: "Collaborative Room", isPublic: true },
+      );
+
+      space = spaceResponse.json().data;
+    });
+
+    it("should handle multiple users adding and voting on songs", async () => {
+      // user1 adds song A
+      const songAResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/songs",
+        user1.id,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=E8gmARGvPlI",
+        },
+      );
+
+      const songA = songAResponse.json().data;
+
+      // user2 adds song B
+      const songBResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/songs",
+        user2.id,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=nZqwQCLYgjk",
+        },
+      );
+
+      const songB = songBResponse.json().data;
+
+      // user3 adds song C
+      const songCResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/songs",
+        user3.id,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=j_sG_Juncn8",
+        },
+      );
+
+      const songC = songCResponse.json().data;
+
+      // all users upvote B
+      await authenticatedRequest("POST", "/api/v1/votes", user1.id, {
+        songId: songB.id,
+        value: 1,
+      });
+      await authenticatedRequest("POST", "/api/v1/votes", user2.id, {
+        songId: songB.id,
+        value: 1,
+      });
+      await authenticatedRequest("POST", "/api/v1/votes", user3.id, {
+        songId: songB.id,
+        value: 1,
+      });
+
+      // user 1 and 2 upvote c
+      await authenticatedRequest("POST", "/api/v1/votes", user1.id, {
+        songId: songC.id,
+        value: 1,
+      });
+      await authenticatedRequest("POST", "/api/v1/votes", user2.id, {
+        songId: songC.id,
+        value: 1,
+      });
+
+      // user3 downvotes A
+      await authenticatedRequest("POST", "/api/v1/votes", user3.id, {
+        songId: songA.id,
+        value: -1,
+      });
+
+      //check the queue (B: 3, C: 2, A: -1)
+      const queueResponse = await testApp.inject({
+        method: "GET",
+        url: `/api/v1/songs/queue/${space.id}`,
+      });
+
+      const queue = queueResponse.json().data.songs;
+      expect(queue).toHaveLength(3);
+      expect(queue[0].id).toBe(songB.id);
+      expect(queue[0].score).toBe(3);
+      expect(queue[1].id).toBe(songC.id);
+      expect(queue[1].score).toBe(2);
+      expect(queue[2].id).toBe(songA.id);
+      expect(queue[2].score).toBe(-1);
+
+      const leaderboardResponse = await authenticatedRequest(
+        "GET",
+        `/api/v1/votes/leaderboard/${space.id}?limit=10`,
+        user1.id,
+      );
+
+      const leaderboard = leaderboardResponse.json().data;
+      expect(leaderboard[0].id).toBe(songB.id);
+      expect(leaderboard[0].score).toBe(3);
+
+      // user2 changes vote on B upvote --> downvote
+      await authenticatedRequest("POST", "/api/v1/votes", user2.id, {
+        songId: songB.id,
+        value: -1,
+      });
+
+      //check updated queue
+      const updatedQueueResponse = await testApp.inject({
+        method: "GET",
+        url: `/api/v1/songs/queue/${space.id}`,
+      });
+
+      const updatedQueue = updatedQueueResponse.json().data.songs;
+      expect(updatedQueue[0].id).toBe(songC.id);
+      expect(updatedQueue[0].score).toBe(2);
+      expect(updatedQueue[1].id).toBe(songB.id);
+      expect(updatedQueue[1].score).toBe(1);
+    }, 60000);
+
+    it("should handle vote statistics correctly", async () => {
+      // add song
+      const songResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/songs",
+        user1.id,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=nZqwQCLYgjk",
+        },
+      );
+
+      const song = songResponse.json().data;
+
+      // users vote
+      await authenticatedRequest("POST", "/api/v1/votes", user1.id, {
+        songId: song.id,
+        value: 1,
+      });
+      await authenticatedRequest("POST", "/api/v1/votes", user2.id, {
+        songId: song.id,
+        value: 1,
+      });
+      await authenticatedRequest("POST", "/api/v1/votes", user3.id, {
+        songId: song.id,
+        value: -1,
+      });
+
+      //check for vote details
+      const voteDetailsResponse = await testApp.inject({
+        method: "GET",
+        url: `/api/v1/votes/song/${song.id}`,
+      });
+      const voteDetails = voteDetailsResponse.json().data;
+
+      expect(voteDetails).toMatchObject({
+        songId: song.id,
+        score: 1,
+        voteCount: {
+          upvotes: 2,
+          downvotes: 1,
+          total: 3,
+        },
+      });
+      expect(voteDetails.votes).toHaveLength(3);
+
+      // check for space stats
+      const spaceStatsResponse = await authenticatedRequest(
+        "GET",
+        `/api/v1/votes/stats/${space.id}`,
+        user1.id,
+      );
+
+      const spaceStats = spaceStatsResponse.json().data;
+      console.log("space stat: ", spaceStatsResponse.json());
+      expect(spaceStats.totalVotes).toBe(3);
+      expect(spaceStats.totalUpvotes).toBe(2);
+      expect(spaceStats.totalDownvotes).toBe(1);
     });
   });
 });

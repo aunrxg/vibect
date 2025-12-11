@@ -92,14 +92,12 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/leaderboard/:spaceId",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { spaceId } = request.params as { spaceId: string };
-      let limit;
-      limit = request.query as string;
-      limit = parseInt(limit) || 10;
-
+      const { limit: limitQuery } = request.query as { limit?: string };
+      const limit = parseInt(limitQuery || "10") || 10;
       const leaderboard = await voteService.getLeaderboard(spaceId, limit);
 
       return sendSuccess(
