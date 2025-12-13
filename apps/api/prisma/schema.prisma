@@ -99,6 +99,7 @@ model Songs {
   votes           Votes[]
   anonymousVotes  anonymousVote[]
 
+  @@unique([spaceId, youtubeId, playedAt], name: "unique_song_in_queue") //Allows the same song to be added again after it's been played
   @@index([spaceId, playedAt])
   @@index([addedById])
   @@index([youtubeId])
