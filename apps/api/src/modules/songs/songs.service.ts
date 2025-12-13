@@ -56,7 +56,7 @@ export class SongService {
       },
     });
     if (existingSong) {
-      throw new ConflictError("This is song is already in queue");
+      throw new ConflictError("This song is already in queue");
     }
 
     // fetch video details
