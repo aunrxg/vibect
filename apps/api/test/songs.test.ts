@@ -46,8 +46,6 @@ describe("Song Module", () => {
         youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       });
 
-      console.log("Anon Song: ", response.json());
-
       expect(response.statusCode).toBe(201);
       expect(response.json().data).toMatchObject({
         youtubeId: "dQw4w9WgXcQ",

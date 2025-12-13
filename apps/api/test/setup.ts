@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, beforeEach, vi } from "vitest";
+import { beforeAll, afterAll, beforeEach, vi, afterEach } from "vitest";
 import { buildApp } from "../src/app";
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../src/lib/prisma";
@@ -11,33 +11,39 @@ let testApp: FastifyInstance;
 beforeAll(async () => {
   // set test env
   process.env.NODE_ENV = "test";
-  process.env.LOG_LEVEL = "error";
+  process.env.LOG_LEVEL = "silent";
 
   // build app for testing
   testApp = await buildApp();
   await testApp.ready();
 
+  // verify db
+  await prisma.$connect();
   console.log("Test app initialiazed");
 });
 
 afterAll(async () => {
   // close app
-  await testApp.close();
-
-  await prisma.$disconnect();
-
-  console.log("Test cleanup completed");
+  try {
+    await testApp?.close();
+    await prisma.$disconnect();
+    console.log("Test cleanup completed");
+  } catch (error) {
+    console.error("CLEANUP error: ", error);
+  }
 });
 
 // clean db before each test
 beforeEach(async () => {
-  // delete all data in reverse oder (because of fkeys)
-  await prisma.anonymousVote.deleteMany();
-  await prisma.votes.deleteMany();
-  await prisma.songs.deleteMany();
-  await prisma.spaceMember.deleteMany();
-  await prisma.space.deleteMany();
-  await prisma.user.deleteMany();
+  // delete all data in transaction
+  await prisma.$transaction([
+    prisma.anonymousVote.deleteMany(),
+    prisma.votes.deleteMany(),
+    prisma.songs.deleteMany(),
+    prisma.spaceMember.deleteMany(),
+    prisma.space.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 
   // mock supabase getUser to bypass auth middlware and accept any mock token
   testApp.supabase = {
@@ -46,11 +52,18 @@ beforeEach(async () => {
         // token format from authenticatedRequest: test-token-<userId> or anon-<uuid>
         const id = token.replace("mock-token-", "");
 
+        const isAnonymous =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            id,
+          ) || id.startsWith("anon-");
+
         return {
           data: {
             user: {
               id,
-              email: `${id}@test.local`,
+              email: isAnonymous ? `${id}@anonymous.local` : `${id}@test.local`,
+              name: isAnonymous ? undefined : "TEST USER",
+              isAnonymous: isAnonymous ? true : false,
             },
           },
           error: null,
@@ -68,6 +81,10 @@ beforeEach(async () => {
       avatarUrl: null,
     };
   });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 export { testApp };

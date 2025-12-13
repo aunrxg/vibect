@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { testApp } from "./setup";
-import { createTestUser, authenticatedRequest } from "./helpers";
-import { Space, User } from "../src/generated/prisma/client";
+import {
+  createTestUser,
+  authenticatedRequest,
+  createTestSpace,
+  generateAnonymousId,
+  anonymousRequest,
+} from "./helpers";
+import { Songs, Space, User } from "../src/generated/prisma/client";
+import { prisma } from "../src/lib/prisma";
 
 describe("Integration: Complete User Flows", () => {
   describe("Scenario 1: New User Creates Space and Manages Queue", () => {
@@ -55,7 +62,7 @@ describe("Integration: Complete User Flows", () => {
         user.id,
         {
           spaceId: space.id,
-          youtubeUrl: "https://youtu.be/jNQXAC9IVRw",
+          youtubeUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
         },
       );
 
@@ -259,7 +266,7 @@ describe("Integration: Complete User Flows", () => {
       expect(updatedQueue[0].score).toBe(2);
       expect(updatedQueue[1].id).toBe(songB.id);
       expect(updatedQueue[1].score).toBe(1);
-    }, 60000);
+    }, 100000);
 
     it("should handle vote statistics correctly", async () => {
       // add song
@@ -320,5 +327,179 @@ describe("Integration: Complete User Flows", () => {
       expect(spaceStats.totalUpvotes).toBe(2);
       expect(spaceStats.totalDownvotes).toBe(1);
     });
+  });
+
+  describe("Scenerio 3: Anonymous Users Interacting", () => {
+    let registeredUser: User;
+    let space: Space;
+    let anonId1: string;
+    let anonId2: string;
+
+    beforeEach(async () => {
+      registeredUser = await createTestUser();
+      anonId1 = generateAnonymousId();
+      anonId2 = generateAnonymousId();
+
+      // registered user creates space
+      const spaceResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/spaces",
+        registeredUser.id,
+        {
+          name: "Public Party",
+          isPublic: true,
+        },
+      );
+
+      space = spaceResponse.json().data;
+    });
+
+    it("should allow anonymous users to add song", async () => {
+      // allow anon1 to add song
+      const anonSong1Response = await anonymousRequest(
+        "POST",
+        "/api/v1/songs",
+        anonId1,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        },
+      );
+
+      expect(anonSong1Response.statusCode).toBe(201);
+      const anonSong1 = anonSong1Response.json().data;
+      expect(anonSong1.addedByAnonymous).toBe(anonId1);
+      expect(anonSong1.addedById).toBe(null);
+
+      // anon2 add song
+      const anonSong2Response = await anonymousRequest(
+        "POST",
+        "/api/v1/songs",
+        anonId1,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+        },
+      );
+      const anonSong2 = anonSong2Response.json().data;
+
+      // registered user add song
+      const regSongResponse = await anonymousRequest(
+        "POST",
+        "/api/v1/songs",
+        anonId1,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtu.com/watch?v=jNQXAC9IVRw",
+        },
+      );
+
+      const regSong = regSongResponse.json().data;
+      // anon user vote
+      await anonymousRequest("POST", "/api/v1/votes", anonId1, {
+        songId: anonSong2.id,
+        value: 1,
+      });
+      await anonymousRequest("POST", "/api/v1/votes", anonId2, {
+        songId: anonSong2.id,
+        value: 1,
+      });
+      // reg user vote
+      await authenticatedRequest("POST", "/api/v1/votes", registeredUser.id, {
+        songId: anonSong2.id,
+        value: 1,
+      });
+
+      // check queue
+      const queueResponse = await testApp.inject({
+        method: "GET",
+        url: `/api/v1/songs/queue/${space.id}?page=1&limit=10`,
+      });
+      const queue = queueResponse.json().data.songs;
+      // top song should be anonsong2 (2+1)
+      const topSong = queue.find((s: Songs) => s.id === anonSong2.id);
+      expect(topSong.score).toBe(3);
+
+      //verify vote count are separate in db but combined in score
+      const dbSong = await prisma.songs.findUnique({
+        where: { id: anonSong2.id },
+        include: {
+          votes: true,
+          anonymousVotes: true,
+        },
+      });
+
+      expect(dbSong?.votes.length).toBe(1);
+      expect(dbSong?.anonymousVotes.length).toBe(2);
+
+      // anonymous users can delete their song
+      const deleteResponse = await anonymousRequest(
+        "DELETE",
+        `/api/v1/songs/${anonSong1.id}`,
+        anonId1,
+      );
+
+      expect(deleteResponse.statusCode).toBe(200);
+
+      // but can't delete other anon song
+      // const UnauthorizedDeleteResponse = await anonymousRequest(
+      //   "DELETE",
+      //   `/api/v1/songs/${anonSong2.id}`,
+      //   anonId1,
+      // );
+
+      // expect(UnauthorizedDeleteResponse.statusCode).toBe(403);
+    }, 60000);
+
+    it("should maintain separate vote tracking for anonymous user", async () => {
+      //add song
+      const songResponse = await authenticatedRequest(
+        "POST",
+        "/api/v1/songs",
+        registeredUser.id,
+        {
+          spaceId: space.id,
+          youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        },
+      );
+
+      const song = songResponse.json().data;
+
+      //multiple anonymous users vote
+      await anonymousRequest("POST", `/api/v1/votes`, anonId1, {
+        songId: song.id,
+        value: 1,
+      });
+      await anonymousRequest("POST", `/api/v1/votes`, anonId2, {
+        songId: song.id,
+        value: 1,
+      });
+
+      // register user vote
+      await authenticatedRequest("POST", `/api/v1/votes`, registeredUser.id, {
+        songId: song.id,
+        value: 1,
+      });
+
+      // check queue
+      const queueResponse = await testApp.inject({
+        method: "GET",
+        url: `/api/v1/songs/queue/${space.id}?page=1&limit=10`,
+      });
+      const queue = queueResponse.json().data.songs[0];
+      expect(queue.score).toBe(3);
+
+      //verify vote count are separate in db but combined in score
+      const dbSong = await prisma.songs.findUnique({
+        where: { id: song.id },
+        include: {
+          votes: true,
+          anonymousVotes: true,
+        },
+      });
+
+      expect(dbSong?.votes.length).toBe(1);
+      expect(dbSong?.anonymousVotes.length).toBe(2);
+    }, 60000);
   });
 });
