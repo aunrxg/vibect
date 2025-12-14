@@ -21,8 +21,8 @@ export class VoteService {
       where: { id: songId },
       include: {
         space: true,
-        votes: true,
-        anonymousVotes: true,
+        // votes: true,
+        // anonymousVotes: true,
       },
     });
 
@@ -53,91 +53,140 @@ export class VoteService {
     }
 
     let vote;
-    if (isAnonymous) {
-      // handle anon vote
-      if (value === 0) {
-        //remove vote
-        try {
-          vote = await this.app.prisma.anonymousVote.delete({
+    await this.app.prisma.$transaction(async (tx) => {
+      if (isAnonymous) {
+        // handle anon vote
+        if (value === 0) {
+          //remove vote
+          await tx.anonymousVote
+            .delete({
+              where: {
+                songId_anonymousId: {
+                  songId,
+                  anonymousId: userId,
+                },
+              },
+            })
+            .catch(() => {});
+          // try {
+          //   vote = await this.app.prisma.anonymousVote.delete({
+          //     where: {
+          //       songId_anonymousId: {
+          //         songId,
+          //         anonymousId: userId,
+          //       },
+          //     },
+          //   });
+          // } catch (error) {
+          //   vote = null;
+          //   this.app.log.debug({ error }, "vote is null");
+          // }
+        } else {
+          // upsert vote
+          // vote = await this.app.prisma.anonymousVote.upsert({
+          //   where: {
+          //     songId_anonymousId: {
+          //       songId,
+          //       anonymousId: userId,
+          //     },
+          //   },
+          //   update: {
+          //     value,
+          //     updatedAt: new Date(),
+          //   },
+          //   create: {
+          //     songId,
+          //     anonymousId: userId,
+          //     value,
+          //   },
+          // });
+          vote = await tx.anonymousVote.upsert({
             where: {
               songId_anonymousId: {
                 songId,
                 anonymousId: userId,
               },
             },
+            update: { value },
+            create: { songId, anonymousId: userId, value },
           });
-        } catch (error) {
-          vote = null;
-          this.app.log.debug({ error }, "vote is null");
         }
       } else {
-        // upsert vote
-        vote = await this.app.prisma.anonymousVote.upsert({
-          where: {
-            songId_anonymousId: {
-              songId,
-              anonymousId: userId,
-            },
-          },
-          update: {
-            value,
-            updatedAt: new Date(),
-          },
-          create: {
-            songId,
-            anonymousId: userId,
-            value,
-          },
-        });
-      }
-    } else {
-      // handle registered user vote
-      if (value === 0) {
-        try {
-          vote = await this.app.prisma.votes.delete({
-            where: {
-              songId_userId: {
-                songId,
-                userId,
+        // handle registered user vote
+        if (value === 0) {
+          // try {
+          //   vote = await this.app.prisma.votes.delete({
+          //     where: {
+          //       songId_userId: {
+          //         songId,
+          //         userId,
+          //       },
+          //     },
+          //   });
+          // } catch (error) {
+          //   vote = null;
+          //   this.app.log.debug({ error }, "vote is null");
+          // }
+          await tx.votes
+            .delete({
+              where: {
+                songId_userId: { songId, userId },
               },
+            })
+            .catch(() => {});
+        } else {
+          // vote = await this.app.prisma.votes.upsert({
+          //   where: {
+          //     songId_userId: {
+          //       songId,
+          //       userId,
+          //     },
+          //   },
+          //   update: {
+          //     value,
+          //     updatedAt: new Date(),
+          //   },
+          //   create: {
+          //     songId,
+          //     userId,
+          //     value,
+          //   },
+          // });
+          vote = await tx.votes.upsert({
+            where: {
+              songId_userId: { songId, userId },
             },
+            update: { value },
+            create: { songId, userId, value },
           });
-        } catch (error) {
-          vote = null;
-          this.app.log.debug({ error }, "vote is null");
         }
-      } else {
-        vote = await this.app.prisma.votes.upsert({
-          where: {
-            songId_userId: {
-              songId,
-              userId,
-            },
-          },
-          update: {
-            value,
-            updatedAt: new Date(),
-          },
-          create: {
-            songId,
-            userId,
-            value,
-          },
-        });
       }
-    }
-
-    const updatedSong = await this.app.prisma.songs.findUnique({
-      where: { id: songId },
-      include: {
-        votes: true,
-        anonymousVotes: true,
-      },
     });
 
-    const score =
-      updatedSong!.votes.reduce((sum, v) => sum + v.value, 0) +
-      updatedSong!.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
+    // const updatedSong = await this.app.prisma.songs.findUnique({
+    //   where: { id: songId },
+    //   include: {
+    //     votes: true,
+    //     anonymousVotes: true,
+    //   },
+    // });
+
+    // const score =
+    //   updatedSong!.votes.reduce((sum, v) => sum + v.value, 0) +
+    //   updatedSong!.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
+
+    const [voteAgg, anonAgg] = await Promise.all([
+      this.app.prisma.votes.aggregate({
+        where: { songId },
+        _sum: { value: true },
+      }),
+      this.app.prisma.anonymousVote.aggregate({
+        where: { songId },
+        _sum: { value: true },
+      }),
+    ]);
+
+    const score = (voteAgg._sum.value ?? 0) + (anonAgg._sum.value ?? 0);
 
     // reorder queeu
     const queue = await this.getQueue(song.spaceId);

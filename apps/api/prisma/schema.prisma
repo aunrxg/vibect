@@ -13,8 +13,9 @@ model User {
   email       String        @unique
   name        String?
   avatarUrl   String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime      @default(now())      @map("created_at")
+  updatedAt   DateTime      @updatedAt           @map("updated_at")
+
   songs       Songs[]
   memberships SpaceMember[]
   spaces      Space[]
@@ -24,17 +25,19 @@ model User {
 }
 
 model Space {
-  id          String        @id @default(uuid()) @db.Uuid
+  id          String        @id             @default(uuid()) @db.Uuid
   name        String
   description String?
-  isPublic    Boolean       @default(true)
-  inviteCode  String        @unique
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  ownerId     String        @db.Uuid
+  isPublic    Boolean       @default(true)  @map("is_public")
+  inviteCode  String        @unique         @map("invite_code")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt      @map("updated_at")
+
+  ownerId     String        @db.Uuid        @map("owner_id")
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
   songs       Songs[]
   memberships SpaceMember[]
-  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@index([ownerId])
   @@index([inviteCode])
@@ -43,10 +46,11 @@ model Space {
 
 model SpaceMember {
   id       String     @id @default(uuid()) @db.Uuid
-  userId   String     @db.Uuid
-  spaceId  String     @db.Uuid
+  userId   String     @map("user_id")      @db.Uuid
+  spaceId  String     @map("space_id")     @db.Uuid
   role     MemberRole @default(MEMBER)
-  joinedAt DateTime   @default(now())
+  joinedAt DateTime   @default(now())      @map("joined_at")
+
   space    Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -58,19 +62,23 @@ model SpaceMember {
 
 model Songs {
   id               String          @id @default(uuid()) @db.Uuid
-  youtubeId        String
+  youtubeId        String          @map("youtube_id")
   title            String
   artist           String?
-  thumbnailUrl     String?
+  thumbnailUrl     String?         @map("thumbnail_url")
   duration         Int
   addedAt          DateTime        @default(now()) @map("added_at")
   playedAt         DateTime?       @map("played_at")
+
   spaceId          String          @map("space_id") @db.Uuid
-  addedById        String?         @map("added_by_id") @db.Uuid
-  addedByAnonymous String?         @map("added_by_anonymous")
-  anonymousVotes   anonymousVote[]
-  addedBy          User?           @relation(fields: [addedById], references: [id])
   space            Space           @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  addedById        String?         @map("added_by_id") @db.Uuid
+  addedBy          User?           @relation(fields: [addedById], references: [id], onDelete: SetNull)
+
+  addedByAnonymous String?         @map("added_by_anonymous")
+
+  anonymousVotes   anonymousVote[]
   votes            Votes[]
 
   // REMOVING the old unique contraint: Postgres has special rule about NULLABLE in unique contraints
@@ -78,17 +86,20 @@ model Songs {
   @@index([spaceId, playedAt])
   @@index([addedById])
   @@index([youtubeId])
+  @@index([addedByAnonymous])
   @@map("songs")
 }
 
 model Votes {
   id        String   @id @default(uuid()) @db.Uuid
-  value     Int      @default(1)
+  value     Int      
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
   songId    String   @map("song_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
   song      Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  userId    String   @map("user_id") @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([songId, userId])
@@ -103,6 +114,7 @@ model anonymousVote {
   value       Int
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
   songId      String   @map("song_id") @db.Uuid
   song        Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
 

@@ -28,7 +28,15 @@ export interface YoutubeVideo {
   title: string;
   artist: string;
   thumbnail: string;
-  duration: string; //in sec
+  duration: number; //in sec
+}
+
+interface YoutubeVideoValidation {
+  id: string;
+  status: {
+    embeddable: boolean;
+    privacyStatus: string;
+  };
 }
 
 export class YoutubeService {
@@ -102,7 +110,7 @@ export class YoutubeService {
         id: item.id,
         title: item.snippet.title,
         artist: item.snippet.channelTitle,
-        duration: item.contentDetails.duration,
+        duration: this.parseDuration(item.contentDetails.duration),
         thumbnail:
           item.snippet.thumbnails.high?.url ??
           item.snippet.thumbnails.default.url,
@@ -141,5 +149,28 @@ export class YoutubeService {
     }
 
     return null;
+  }
+
+  async validateVideo(videoId: string): Promise<boolean> {
+    try {
+      const url = new URL(`${YOUTUBE_API_BASE}/videos`);
+      url.searchParams.set("part", "status");
+      url.searchParams.set("id", videoId);
+      url.searchParams.set("key", this.apiKey);
+
+      const response = await fetch(url.toString());
+
+      const data = (await response.json()) as {
+        items: YoutubeVideoValidation[];
+      };
+
+      if (data.items.length === 0) return false;
+
+      const status = data.items[0]?.status;
+      return status!.embeddable && !(status!.privacyStatus === "private");
+    } catch (error) {
+      console.error("Error validating youtube videos: ", error);
+      return false;
+    }
   }
 }

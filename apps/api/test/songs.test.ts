@@ -144,8 +144,6 @@ describe("Song Module", () => {
         url: `/api/v1/songs/queue/${testSpace.id}?page=1&limit=50`,
       });
 
-      console.log("Queue2 ---> ", response.json());
-
       expect(response.statusCode).toBe(200);
       const songs = response.json().data.songs;
 

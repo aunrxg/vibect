@@ -183,8 +183,6 @@ describe("Vote Module", () => {
         testUser.id,
       );
 
-      console.log("leaderboard: ", response.json());
-
       expect(response.statusCode).toBe(200);
       const leaderboard = response.json().data;
 

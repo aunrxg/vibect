@@ -8,7 +8,6 @@ import {
 } from "../../utils/error";
 import { CACHE_KEYS, REDIS_CHANNELS } from "../../config/constants";
 import { calculatePagination } from "../../utils/response";
-import { parseISODurationToSeconds } from "../../utils/helpers";
 
 export class SongService {
   private youtubeService: YoutubeService;
@@ -47,19 +46,7 @@ export class SongService {
       throw new NotFoundError("Space not found");
     }
 
-    // check if song already in space
-    const existingSong = await this.app.prisma.songs.findFirst({
-      where: {
-        spaceId,
-        youtubeId: videoId,
-        playedAt: null, // check if unplayed...
-      },
-    });
-    if (existingSong) {
-      throw new ConflictError("This song is already in queue");
-    }
-
-    // fetch video details
+    // check video details first (before checking duplicates)
     let videoDetails;
     try {
       videoDetails = await this.youtubeService.getVideoById(videoId);
@@ -67,72 +54,94 @@ export class SongService {
       this.app.log.error({ error }, "Failed to fetch video details: ");
       throw new BadRequestError(
         "Could not fetch video details. video may be unavailable",
-        error,
       );
     }
 
-    const fixedDuration = parseISODurationToSeconds(videoDetails.duration);
+    //validate video is embeddable
+    const isValid = await this.youtubeService.validateVideo(videoId);
+    if (!isValid) {
+      throw new BadRequestError("This video connot be played");
+    }
 
     // for anonymous users, we need a way to track who added it
     // we can store it in a JSON field or create a separate tracking mechanism
 
-    const song = await this.app.prisma.songs.create({
-      data: {
-        youtubeId: videoId,
-        title: videoDetails.title,
-        artist: videoDetails.artist,
-        duration: fixedDuration,
-        thumbnailUrl: videoDetails.thumbnail,
-        spaceId,
-        // if anon user store in addedByAnon field else in addedById
-        addedById: isAnonymous ? null : userId,
-        addedByAnonymous: isAnonymous ? userId : null,
-      },
-      include: {
-        addedBy: true,
-        votes: true,
-        anonymousVotes: true,
-      },
-    });
-
-    const score =
-      song.votes.reduce((sum, v) => sum + v.value, 0) +
-      song.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
-
-    // update cache
-    await this.app.redis.del(CACHE_KEYS.QUEUE(spaceId));
-
-    // pub event
-    await this.app.redis.publish(
-      REDIS_CHANNELS.SPACE_EVENTS,
-      JSON.stringify({
-        type: "song_added",
-        spaceId,
+    try {
+      const song = await this.app.prisma.songs.create({
         data: {
-          ...song,
-          score,
-          addedBy: isAnonymous
-            ? {
-                id: userId,
-                name: this.generateAnonymousName(userId), //TODO get name from frontend or generate
-                isAnonymous: true,
-              }
-            : song.addedById,
+          youtubeId: videoId,
+          title: videoDetails.title,
+          artist: videoDetails.artist,
+          duration: videoDetails.duration,
+          thumbnailUrl: videoDetails.thumbnail,
+          spaceId,
+          // if anon user store in addedByAnon field else in addedById
+          addedById: isAnonymous ? null : userId,
+          addedByAnonymous: isAnonymous ? userId : null,
         },
-      }),
-    );
+        include: {
+          addedBy: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          votes: true,
+          anonymousVotes: true,
+        },
+      });
 
-    return {
-      ...song,
-      score,
-      addedBy: isAnonymous
-        ? {
-            id: userId,
-            name: this.generateAnonymousName(userId),
-            isAnonymous: true,
-          }
-        : song.addedBy,
-    };
+      const score =
+        song.votes.reduce((sum, v) => sum + v.value, 0) +
+        song.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
+
+      // update cache
+      await this.app.redis.del(CACHE_KEYS.QUEUE(spaceId));
+
+      // pub event
+      await this.app.redis.publish(
+        REDIS_CHANNELS.SPACE_EVENTS,
+        JSON.stringify({
+          type: "song_added",
+          spaceId,
+          data: {
+            ...song,
+            score,
+            addedBy: isAnonymous
+              ? {
+                  id: userId,
+                  name: this.generateAnonymousName(userId), //TODO get name from frontend or generate
+                  isAnonymous: true,
+                }
+              : song.addedById,
+          },
+        }),
+      );
+
+      return {
+        ...song,
+        score,
+        addedBy: isAnonymous
+          ? {
+              id: userId,
+              name: this.generateAnonymousName(userId),
+              isAnonymous: true,
+            }
+          : song.addedBy,
+      };
+    } catch (error: any) {
+      // handle unique contraint error
+      if (error.code === "P2002") {
+        // prisma unique contraint error
+        this.app.log.info(
+          `Duplicate song attemp: ${videoId} in space ${spaceId}`,
+        );
+        throw new ConflictError("This song is already in queue");
+      }
+      throw error;
+    }
   }
 
   private generateAnonymousName(anonymousId: string): string {
