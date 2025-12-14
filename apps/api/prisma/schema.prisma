@@ -1,67 +1,54 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider  = "postgresql"
-  // url       = env("DIRECT_URL")  // commented because it might break || RAISE AN ISSUE ||
+  provider = "postgresql"
+  // url      = env("DIRECT_URL")
 }
-    
-// User model
+
 model User {
-  id          String    @id @default(uuid())    @db.Uuid
-  email       String    @unique
+  id          String        @id @default(uuid()) @db.Uuid
+  email       String        @unique
   name        String?
   avatarUrl   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  spaces      Space[]
-  votes       Votes[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   songs       Songs[]
   memberships SpaceMember[]
+  spaces      Space[]
+  votes       Votes[]
 
   @@map("users")
 }
 
-//space model
 model Space {
-  id          String      @id @default(uuid())  @db.Uuid
+  id          String        @id @default(uuid()) @db.Uuid
   name        String
   description String?
-  isPublic    Boolean     @default(true)
-  inviteCode  String      @unique
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  ownerId    String       @db.Uuid
-  owner      User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  songs        Songs[]
-  memberships  SpaceMember[]
+  isPublic    Boolean       @default(true)
+  inviteCode  String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  ownerId     String        @db.Uuid
+  songs       Songs[]
+  memberships SpaceMember[]
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@index([ownerId])
   @@index([inviteCode])
   @@map("spaces")
 }
 
-//space membership model
 model SpaceMember {
-  id        String        @id @default(uuid())   @db.Uuid
-  userId    String        @db.Uuid
-  spaceId   String        @db.Uuid
-  role      MemberRole    @default(MEMBER) // roles: member, admin
-  joinedAt  DateTime      @default(now())
-
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  space     Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  id       String     @id @default(uuid()) @db.Uuid
+  userId   String     @db.Uuid
+  spaceId  String     @db.Uuid
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+  space    Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, spaceId])
   @@index([spaceId])
@@ -69,55 +56,40 @@ model SpaceMember {
   @@map("space_members")
 }
 
-enum MemberRole {
-  OWNER
-  ADMIN
-  MEMBER
-}
-
-// songs model
 model Songs {
-  id              String    @id @default(uuid())  @db.Uuid
-  youtubeId       String
-  title           String
-  artist          String?
-  thumbnailUrl    String?
-  duration        Int // duration in seconds
-  addedAt         DateTime  @default(now())       @map("added_at")
-  playedAt        DateTime? @map("played_at")
+  id               String          @id @default(uuid()) @db.Uuid
+  youtubeId        String
+  title            String
+  artist           String?
+  thumbnailUrl     String?
+  duration         Int
+  addedAt          DateTime        @default(now()) @map("added_at")
+  playedAt         DateTime?       @map("played_at")
+  spaceId          String          @map("space_id") @db.Uuid
+  addedById        String?         @map("added_by_id") @db.Uuid
+  addedByAnonymous String?         @map("added_by_anonymous")
+  anonymousVotes   anonymousVote[]
+  addedBy          User?           @relation(fields: [addedById], references: [id])
+  space            Space           @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  votes            Votes[]
 
-  spaceId         String    @map("space_id")      @db.Uuid
-  space           Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-
-  // optional for anon users
-  addedById       String?    @map("added_by_id")   @db.Uuid
-  addedBy         User?      @relation(fields: [addedById], references: [id])
-
-  // for anon ID
-  addedByAnonymous String?    @map("added_by_anonymous")
-
-  votes           Votes[]
-  anonymousVotes  anonymousVote[]
-
-  @@unique([spaceId, youtubeId, playedAt], name: "unique_song_in_queue") //Allows the same song to be added again after it's been played
+  // REMOVING the old unique contraint: Postgres has special rule about NULLABLE in unique contraints
+  // @@unique([spaceId, youtubeId, playedAt], name: "unique_song_in_queue")
   @@index([spaceId, playedAt])
   @@index([addedById])
   @@index([youtubeId])
   @@map("songs")
 }
 
-// votes model
 model Votes {
-  id          String      @id @default(uuid())  @db.Uuid
-  value       Int         @default(1) // 1 for upvote, -1 for downvote
-  createdAt   DateTime    @default(now())       @map("created_at")
-  updatedAt   DateTime    @updatedAt            @map("updated_at")
-
-  songId      String      @map("song_id")       @db.Uuid
-  song        Songs       @relation(fields: [songId], references: [id], onDelete: Cascade)
-
-  userId      String      @map("user_id")       @db.Uuid
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid()) @db.Uuid
+  value     Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  songId    String   @map("song_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  song      Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([songId, userId])
   @@index([songId])
@@ -126,17 +98,22 @@ model Votes {
 }
 
 model anonymousVote {
-  id            String    @id   @default(uuid())  @db.Uuid
-  anonymousId   String    @map("anonymous_id") // anon_xxx
-  value         Int // 1 or -1
-  createdAt     DateTime  @default(now())         @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  songId        String    @map("song_id")         @db.Uuid
-  song          Songs     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid()) @db.Uuid
+  anonymousId String   @map("anonymous_id")
+  value       Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  songId      String   @map("song_id") @db.Uuid
+  song        Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@unique([songId, anonymousId])
   @@index([songId])
   @@index([anonymousId])
   @@map("anonymous_votes")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
