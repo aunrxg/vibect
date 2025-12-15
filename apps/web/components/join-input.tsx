@@ -26,7 +26,7 @@ import {
 
 export default function JoinInput() {
   return (
-    <Card className="flex flex-col items-center justify-center p-6 rounded-lg border shadow-xl mx-auto max-w-md">
+    <Card className="flex flex-col items-center justify-center py-4 md:py-6 rounded-lg border shadow-xl mx-auto max-w-md">
       <CardHeader className="w-full text-center">
         <CardTitle>Join a Music Space</CardTitle>
         <CardDescription>Enter a room code to join a room</CardDescription>
