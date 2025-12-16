@@ -14,7 +14,7 @@ export default function Home() {
       <SidebarInset>
         <SiteHeader />
         <main className="md:flex md:flex-1">
-          <section className="w-4/5 px-3 py-2 flex flex-col gap-3 ">
+          <section className="md:w-4/5 px-3 py-2 flex flex-col gap-3">
             <JoinInput />
             <PopularCard />
           </section>

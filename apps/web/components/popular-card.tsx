@@ -39,7 +39,7 @@ export default function PopularCard() {
           <span>See More</span>
         </Link>
       </div>
-      <div className="flex items-center justify-between py-2 h-60">
+      <div className="flex items-center justify-between py-2 md:h-60">
         {data.map((e, idx) => (
           <ImageCardHover
             key={idx}
@@ -61,7 +61,7 @@ interface ImageHoverCardProps {
 
 function ImageCardHover({ imageUrl, title, description }: ImageHoverCardProps) {
   return (
-    <Card className="group h-full justify-center w-1/5 rounded-lg overflow-hidden border-none shadow-md cursor-pointer">
+    <Card className="group h-full justify-center w-1/3 md:w-1/5 rounded-lg overflow-hidden border-none shadow-md cursor-pointer">
       <AspectRatio ratio={1 / 1} className="relative">
         <Image
           src={imageUrl}
