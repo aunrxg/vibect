@@ -13,7 +13,7 @@ export default function RecentNav() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Recent Joined</CardTitle>
+        <CardTitle className="text-lg">Recent Joined</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
         <Space />
@@ -23,7 +23,7 @@ export default function RecentNav() {
       <CardFooter>
         <Link href="#" className="flex gap-2 text-xs text-primary">
           <span>See More</span>
-          <IconArrowNarrowRight className="size-5!" />
+          <IconArrowNarrowRight className="size-4!" />
         </Link>
       </CardFooter>
     </Card>
@@ -40,10 +40,10 @@ function Space() {
         className="border rounded-full"
         alt="space-icon"
       />
-      <div className="">
-        <div>Title</div>
-        <p className="text-sm">description</p>
-        <small className="text-xs">Created by</small>
+      <div>
+        <h4 className="text-sm">Title</h4>
+        <p className="text-xs">description</p>
+        <p className="text-[10px]">Created by</p>
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ export default function SocialNav() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Social</CardTitle>
+        <CardTitle className="text-lg">Social</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="*:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:grayscale">
@@ -54,7 +54,7 @@ export default function SocialNav() {
       <CardFooter>
         <Link href="#" className="flex gap-2 text-xs text-primary">
           <span>See More</span>
-          <IconArrowNarrowRight className="size-5!" />
+          <IconArrowNarrowRight className="size-4!" />
         </Link>
       </CardFooter>
     </Card>
