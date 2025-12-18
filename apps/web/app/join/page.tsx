@@ -1,5 +1,6 @@
 "use client";
 
+import Testimonials from "@/components/testimonial";
 import { Button } from "@/components/ui/button";
 import {
   Card,
