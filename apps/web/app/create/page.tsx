@@ -13,61 +13,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
+import { useAuthStore } from "@/store/use-auth-store";
 import { ArrowLeft, Music } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { toast } from "sonner";
 
 export default function CreateSpacePage() {
   const router = useRouter();
   const [spaceName, setSpaceName] = useState("");
   const [description, setDescription] = useState("");
-  const [allowAnonymous, setAllowAnonymous] = useState(true);
-  const [allowInteractions, setAllowInteractions] = useState(false);
+  const [isPulic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { user, loading } = useAuth();
+  const { isAuthenticated } = useAuthStore();
 
   const handleCreateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!spaceName) return; //toast
+    if (!spaceName) {
+      toast.error("Space Name is required");
+      return;
+    }
 
     setIsCreating(true);
-
-    // check if spaceCode already exist
-    const { data, error } = await supabase
-      .from("spaces")
-      .insert([
-        {
-          name: spaceName,
-          allow_anonymous: allowAnonymous,
-          allow_interactions: allowInteractions,
-          created_by: user.id,
-        },
-      ])
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error("Error making new entry: ", error);
-    } else {
-      router.push(`/space/${data.id}`);
-    }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-500"></div>
-      </div>
-    );
-  }
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-black/96 text-foreground">
+      <div className="min-h-screen">
         {/* Header */}
         <header className="border-b border-border">
           <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -95,7 +69,7 @@ export default function CreateSpacePage() {
               </p>
             </div>
 
-            <Card className="bg-muted/40 border rounded-xl">
+            <Card className="border rounded-xl">
               <CardHeader>
                 <CardTitle>Space Configuration</CardTitle>
                 <CardDescription>
@@ -132,38 +106,24 @@ export default function CreateSpacePage() {
 
                   <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                     <div className="space-y-1">
-                      <Label htmlFor="requireAuth">Allow Anonymous</Label>
+                      <Label htmlFor="requireAuth">Public Space</Label>
                       <p className="text-sm text-muted-foreground">
-                        Anonymous users can add songs and vote
+                        Anonymous users can Join space, add songs and vote
                       </p>
                     </div>
                     <Switch
                       id="requireAuth"
-                      checked={allowAnonymous}
-                      onCheckedChange={setAllowAnonymous}
+                      checked={isPulic}
+                      onCheckedChange={setIsPublic}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div className="space-y-1">
-                      <Label htmlFor="allowInteractions">
-                        Allow Interactions
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Users can switch songs and toggle playback
-                      </p>
-                    </div>
-                    <Switch
-                      id="allowInteractions"
-                      checked={allowInteractions}
-                      onCheckedChange={setAllowInteractions}
-                    />
-                  </div>
-
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <Button
                       type="submit"
                       className="flex-1"
-                      disabled={!spaceName.trim() || isCreating || !user}
+                      disabled={
+                        !spaceName.trim() || isCreating || !isAuthenticated
+                      }
                     >
                       {isCreating ? "Creating Space..." : "Create Space"}
                     </Button>
