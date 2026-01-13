@@ -1,82 +1,95 @@
-export interface Song {
+export interface Space {
   id: string;
-  space_id: string;
-  platform: "youtube" | "spotify";
-  url: string;
-  video_id: string | null;
-  title: string;
-  author: string;
-  thumbnail: string | null;
-  duration_seconds: number;
-  votes_cached: number;
-  created_by: string | null;
-  created_at: string;
-  profiles?: {
-    display_name?: string;
-    username?: string;
-  };
+  name: string;
+  description?: string;
+  isPublic: boolean;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+  currentSongId?: string;
+  memberCount?: number;
 }
 
-export interface Profile {
+export interface Song {
   id: string;
-  name?: string;
-  email?: string;
-  avatar?: string;
-  username?: string;
-  isAnonymous?: boolean;
+  spaceId: string;
+  youtubeId: string;
+  title: string;
+  thumbnail: string;
+  duration: number;
+  addedBy: string;
+  addedAt: string;
+  voteCount: number;
+  position: number;
+  userVote?: -1 | 0 | 1; // Current user's vote
 }
 
 export interface Vote {
   id: string;
-  song_id: string;
-  voter_user_id: string | null;
-  voter_anon_id: string | null;
-  value: 1 | -1;
-  created_at: string;
+  song: {
+    id: string;
+    addedBy: {
+      id: string;
+      name: string;
+    };
+  };
+  value: -1 | 1;
+  createdAt: string;
 }
 
-export interface Space {
+export interface YTSearchResult {
+  videoId: string;
+  title: string;
+  thumbnail: string;
+  duration: number;
+  channelTitle: string;
+}
+
+export interface User {
   id: string;
+  username: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface CreateSpaceInput {
   name: string;
-  created_at: string;
-  created_by: string;
-  allow_anonymous: boolean;
-  allow_interactions: boolean;
-  isActive: boolean;
+  description?: string;
+  isPublic: boolean;
 }
 
-export interface SpacePlayback {
-  space_id: string;
-  current_song_id: string | null;
-  isPlaying: boolean;
-  position_seconds: number;
-  updated_by: string | null;
-  updated_at: string;
+export interface AddSongInput {
+  spaceId: string;
+  youtubeId: string;
+  title: string;
+  thumbnail: string;
+  duration: number;
 }
-
-export interface UserPresenceType {
-  id: string;
-  space_id: string;
-  user_id: string | null;
-  anon_id: string | null;
-  username: string | null;
-  display_name: string | null;
-  last_seen: string;
-  presence_ref?: string;
-  created_at: string;
-}
-
-export type UserRole = "creator" | "viewer";
 
 export type ConnectionState =
   | "connecting"
   | "connected"
   | "disconnected"
+  | "reconnecting"
   | "error";
 
-export interface PlaybackState {
-  current_song_id: string | null;
-  is_playing: boolean;
-  position_seconds: number;
-  updated_at?: string;
+export interface VoteInput {
+  songId: string;
+  value: -1 | 1;
 }
+
+type AnonymousUser = {
+  id: string; // anon_XXX
+  name: string; // generate random names one piece edition
+  isAnonymous: true;
+};
+
+type AuthenticatedUser = {
+  id: string;
+  email: string;
+  name?: string;
+  avatarUrl?: string;
+  isAnonymous: false;
+};
+
+export type Identity = AuthenticatedUser | AnonymousUser;
