@@ -8,6 +8,8 @@ export async function syncUserToDB(user: User) {
     name: user.user_metadata?.full_name || user.user_metadata?.name || null,
     avatarUrl:
       user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
   };
 
   const { error } = await supabase

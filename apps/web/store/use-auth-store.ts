@@ -52,7 +52,7 @@ const generateGuestName = () => {
 function createAnonymousUser() {
   // create anon user
   return {
-    id: `anon_${crypto.randomUUID}`,
+    id: `anon_${crypto.randomUUID()}`,
     name: generateGuestName(),
     isAnonymous: true as const,
   };

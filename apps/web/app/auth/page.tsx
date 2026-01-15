@@ -27,7 +27,8 @@ export default function AuthPage() {
   const [signUp, setSignUp] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    const isAuth = isAuthenticated();
+    if (isAuth) {
       router.push("/create");
     }
   }, [isAuthenticated, router]);

@@ -15,13 +15,14 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, redirectTo = "/auth" }: AuthGuardProps) {
   const { loading, isAuthenticated } = useAuthStore();
+  const isAuth = isAuthenticated();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (!loading && !isAuth) {
       router.push(redirectTo);
     }
-  }, [isAuthenticated, loading, router, redirectTo]);
+  }, [isAuth, loading, router, redirectTo]);
 
   if (loading) {
     return (
@@ -36,7 +37,7 @@ export function AuthGuard({ children, redirectTo = "/auth" }: AuthGuardProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuth) {
     return null; // Will redirect
   }
 

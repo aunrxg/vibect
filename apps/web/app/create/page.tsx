@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useCreateSpace } from "@/hooks/use-space";
 import { useAuthStore } from "@/store/use-auth-store";
 import { ArrowLeft, Music } from "lucide-react";
 import Link from "next/link";
@@ -25,9 +26,11 @@ export default function CreateSpacePage() {
   const [spaceName, setSpaceName] = useState("");
   const [description, setDescription] = useState("");
   const [isPulic, setIsPublic] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
 
   const { isAuthenticated } = useAuthStore();
+  const isAuth = isAuthenticated();
+
+  const { mutate: createSpace, isPending, error } = useCreateSpace();
 
   const handleCreateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +38,19 @@ export default function CreateSpacePage() {
       toast.error("Space Name is required");
       return;
     }
-
-    setIsCreating(true);
+    createSpace(
+      { name: spaceName, isPublic: isPulic, description },
+      {
+        onSuccess: (newSpace) => {
+          console.log("space created: ", newSpace);
+          router.push(`/spaces/${newSpace.id}`);
+        },
+        onError: (err) => {
+          console.error("Failed to create space: ", err);
+          toast.error("Failed to create space. Please try again.");
+        },
+      },
+    );
   };
 
   return (
@@ -121,11 +135,9 @@ export default function CreateSpacePage() {
                     <Button
                       type="submit"
                       className="flex-1"
-                      disabled={
-                        !spaceName.trim() || isCreating || !isAuthenticated
-                      }
+                      disabled={!spaceName.trim() || isPending || !isAuth}
                     >
-                      {isCreating ? "Creating Space..." : "Create Space"}
+                      {isPending ? "Creating Space..." : "Create Space"}
                     </Button>
                     <Button
                       type="button"
