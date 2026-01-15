@@ -1,11 +1,16 @@
 import { FastifyRequest } from "fastify";
 import { UnauthorizedError } from "../utils/error";
+import { config } from "../config";
+import { jwtVerify } from "jose";
 
 export function isAnonymousUser(userId: string): boolean {
   return userId.startsWith("anon_");
 }
 
 export async function authenticate(request: FastifyRequest) {
+  if (request.method === "OPTIONS") {
+    return;
+  }
   try {
     const authHeader = request.headers.authorization;
 
@@ -14,18 +19,29 @@ export async function authenticate(request: FastifyRequest) {
     }
 
     const token = authHeader.substring(7);
+    const secret = new TextEncoder().encode(config.supabase.jwtSecret);
 
-    const {
-      data: { user },
-      error,
-    } = await request.server.supabase.auth.getUser(token);
+    const { payload } = await jwtVerify(token, secret);
 
-    if (error || !user) {
-      throw new UnauthorizedError("expired or invalid token");
-    }
+    const userId = payload.sub as string;
+
+    // console.log("Token Length: ", token.length);
+    // console.log("TOKEN from client: ", token);
+    // request.server.log.debug({ token }, "Token from client");
+
+    // const {
+    //   data: { user },
+    //   error,
+    // } = await request.server.supabase.auth.getUser(token);
+
+    // if (error || !user) {
+    //   request.server.log.error({ error }, "Error: ");
+    //   console.log("JWT error: ", error);
+    //   throw new UnauthorizedError("expired or invalid token");
+    // }
 
     const dbUser = await request.server.prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: userId },
       select: {
         id: true,
         email: true,
@@ -45,7 +61,7 @@ export async function authenticate(request: FastifyRequest) {
       isAnonymous: false,
     };
 
-    request.log.info({ userId: user.id }, "User authenticated");
+    request.log.info({ userId: userId }, "User authenticated");
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       throw error;
