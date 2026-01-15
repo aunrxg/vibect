@@ -2,7 +2,7 @@
 
 // ui components
 import Chat from "@/components/space/chat";
-// import { ConnectionStatus } from "@/components/space/connection-status";
+import { ConnectionStatus } from "@/components/space/connection-status";
 import SongQueue from "@/components/space/song-queue";
 import UserPresence from "@/components/space/user-presence";
 import { Badge } from "@/components/ui/badge";
@@ -99,10 +99,31 @@ export default function SpacePage() {
       console.error("Failed to copy link:", err);
     }
   };
+
+  const tabs = [
+    {
+      name: "Queue",
+      value: "queue",
+      count: 8,
+      content: <SongQueue />,
+    },
+    {
+      name: "People",
+      value: "people",
+      count: 5,
+      content: <UserPresence />,
+    },
+    {
+      name: "Chat",
+      value: "chat",
+      count: 9,
+      content: <Chat />,
+    },
+  ];
   return (
     <main className="h-screen w-full">
       <header className="border-b backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
@@ -110,23 +131,37 @@ export default function SpacePage() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
                 <Music className="h-8 w-8 text-primary" />
-                <span className="text-xl font-bold">Vitect</span>
+                <span className="text-lg font-bold">Vitect</span>
               </Link>
               <div className="hidden sm:block w-px h-6 bg-border" />
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-semibold">{space.name}</h1>
-                {/* {space.description && <p className="text-sm text-muted-foreground">{space.description}</p>} */}
+              <div className="flex flex-col">
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-semibold leading-tight tracking-tight">
+                    {space.name}
+                  </h1>
+                  {space.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {space.description}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {space.memberCount || 0}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* <ConnectionStatus
+              <ConnectionStatus
                 key={spaceId}
                 connectionState={connectionState}
-                isReconnecting={isReconnecting}
-                users={users}
-                handleReconnect={handleReconnect}
-              /> */}
+              />
               {/* <Badge
                 variant={
                   currentUser?.role === "creator" ? "default" : "secondary"
@@ -158,7 +193,11 @@ export default function SpacePage() {
           {/* Mobile space info */}
           <div className="sm:hidden mt-3 pt-3 border-t border-border">
             <h1 className="text-lg font-semibold">{space.name}</h1>
-            {/* {space.description && <p className="text-sm text-muted-foreground">{space.description}</p>} */}
+            {space.description && (
+              <p className="text-sm text-muted-foreground">
+                {space.description}
+              </p>
+            )}
           </div>
         </div>
       </header>
@@ -172,27 +211,26 @@ export default function SpacePage() {
         </section>
         <section className="h-full w-full md:w-2/5">
           <div className="w-full h-full flex flex-col gap-6 items-center">
-            <Tabs className="w-full">
+            <Tabs defaultValue="queue" className="w-full gap-4">
               <TabsList className="w-full">
-                <TabsTrigger value="queue">
-                  Queue
-                  <Badge variant="secondary">5</Badge>
-                </TabsTrigger>
-                <TabsTrigger value="people">
-                  People
-                  <Badge variant="secondary">5</Badge>
-                </TabsTrigger>
-                <TabsTrigger value="chat">Chat</TabsTrigger>
+                {tabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-1 px-2.5 sm:px-3"
+                  >
+                    {tab.name}
+                    <Badge className="h-5 min-w-5 px-1 tabular-nums">
+                      {tab.count}
+                    </Badge>
+                  </TabsTrigger>
+                ))}
               </TabsList>
-              <TabsContent value="queue">
-                <SongQueue />
-              </TabsContent>
-              <TabsContent value="people">
-                <UserPresence />
-              </TabsContent>
-              <TabsContent value="chat">
-                <Chat />
-              </TabsContent>
+              {tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value}>
+                  {tab.content}
+                </TabsContent>
+              ))}
             </Tabs>
           </div>
         </section>
