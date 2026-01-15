@@ -2,11 +2,11 @@ import { useAuthStore } from "@/store/use-auth-store";
 import { useWebSocket } from "./use-websockets";
 
 export const useSpaceWebSocket = (spaceId: string) => {
-  const session = useAuthStore((state) => state.session);
-  const { access_token } = session;
+  const getToken = useAuthStore((state) => state.getAuthToken);
+  const token = getToken();
 
   return useWebSocket({
-    token: access_token || undefined,
+    token: token || undefined,
     spaceId,
     enabled: !!spaceId,
     autoConnect: true,

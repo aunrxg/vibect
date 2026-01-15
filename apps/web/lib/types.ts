@@ -93,3 +93,15 @@ type AuthenticatedUser = {
 };
 
 export type Identity = AuthenticatedUser | AnonymousUser;
+
+export interface Queue {
+  meta: {
+    hasNext: boolean;
+    hasPrev: boolean;
+    limit: number;
+    page: number;
+    total: number;
+    totalPages: number;
+  };
+  songs: Song[];
+}

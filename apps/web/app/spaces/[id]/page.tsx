@@ -1,0 +1,202 @@
+"use client";
+
+// ui components
+import Chat from "@/components/space/chat";
+// import { ConnectionStatus } from "@/components/space/connection-status";
+import SongQueue from "@/components/space/song-queue";
+import UserPresence from "@/components/space/user-presence";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Check, Music, Share2 } from "lucide-react";
+// zustand state stores
+import { useAuthStore } from "@/store/use-auth-store";
+// next
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useSpace } from "@/hooks/use-space";
+import { useSpaceWebSocket } from "@/hooks/use-space-ws";
+import { useAddSong, useQueue } from "@/hooks/use-song";
+import { useRemoveVote, useUserVotes, useVote } from "@/hooks/use-vote";
+import { useSpaceStore } from "@/store/use-space-store";
+import { useEffect, useState } from "react";
+
+export default function SpacePage() {
+  const { id: spaceId } = useParams<{ id: string }>();
+  const router = useRouter();
+
+  // local state
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // zustand states
+  const { identity, isAuthenticated } = useAuthStore();
+  const setCurrentSpace = useSpaceStore((s) => s.setCurrentSpace);
+
+  // fetch base data
+  const {
+    data: space,
+    isLoading: spaceLoading,
+    error: spaceError,
+  } = useSpace(spaceId);
+  const { data: queue, isLoading: queueLoading } = useQueue(spaceId);
+  // fetch users vote
+  const { data: userVotes } = useUserVotes(spaceId);
+
+  // mutations
+  const addSong = useAddSong();
+  const vote = useVote();
+  const removeVote = useRemoveVote();
+
+  // ws connection
+  const { isConnected, connectionState } = useSpaceWebSocket(spaceId);
+
+  // set current space in global state
+  useEffect(() => {
+    setCurrentSpace(spaceId);
+    return () => setCurrentSpace(null);
+  }, [spaceId, setCurrentSpace]);
+
+  // loading state
+  if (spaceLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-xl text-white">Loading space...</div>
+      </div>
+    );
+  }
+  if (queueLoading) {
+    return <h1>Queue Loading...</h1>;
+  }
+  if (!space || spaceError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-xl text-red-500">
+          Space not found
+          <Button
+            onClick={() => router.push("/join")}
+            // className="ml-4 px-4 py-2 bg-blue-500 rounded"
+          >
+            Back to Spaces
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // attach user votes
+  const enrichQueue = queue.songs.map((song) => ({
+    ...song,
+    userVote: userVotes[song.id] ?? 0,
+  }));
+
+  const handleShareLink = async () => {
+    const shareUrl = `${window.location.origin}/space/${spaceId}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+    }
+  };
+  return (
+    <main className="h-screen w-full">
+      <header className="border-b backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <Music className="h-8 w-8 text-primary" />
+                <span className="text-xl font-bold">Vitect</span>
+              </Link>
+              <div className="hidden sm:block w-px h-6 bg-border" />
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-semibold">{space.name}</h1>
+                {/* {space.description && <p className="text-sm text-muted-foreground">{space.description}</p>} */}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* <ConnectionStatus
+                key={spaceId}
+                connectionState={connectionState}
+                isReconnecting={isReconnecting}
+                users={users}
+                handleReconnect={handleReconnect}
+              /> */}
+              {/* <Badge
+                variant={
+                  currentUser?.role === "creator" ? "default" : "secondary"
+                }
+              >
+                {currentUser?.role === "creator" ? "Creator" : "Viewer"}
+              </Badge> */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShareLink}
+                className="flex items-center gap-2 bg-transparent"
+              >
+                {linkCopied ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-4 w-4" />
+                    Share Link
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile space info */}
+          <div className="sm:hidden mt-3 pt-3 border-t border-border">
+            <h1 className="text-lg font-semibold">{space.name}</h1>
+            {/* {space.description && <p className="text-sm text-muted-foreground">{space.description}</p>} */}
+          </div>
+        </div>
+      </header>
+      <div className="flex h-11/12 flex-col md:flex-row">
+        <section className="bg-green-400 h-full w-full md:w-3/5 overflow-hidden">
+          {/* <AspectRatio ratio={1 / 1} className="relative flex items-center justify-center">
+             <Image src="https://img.freepik.com/free-psd/neon-void-cd-cover-template_23-2152015422.jpg?semt=ais_hybrid&w=740&q=80" alt="album" fill
+            sizes="(max-width: 768px) 100vw, 33vw" className="object-cover object-center"
+            priority={false} />
+          </AspectRatio> */}
+        </section>
+        <section className="h-full w-full md:w-2/5">
+          <div className="w-full h-full flex flex-col gap-6 items-center">
+            <Tabs className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="queue">
+                  Queue
+                  <Badge variant="secondary">5</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="people">
+                  People
+                  <Badge variant="secondary">5</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="chat">Chat</TabsTrigger>
+              </TabsList>
+              <TabsContent value="queue">
+                <SongQueue />
+              </TabsContent>
+              <TabsContent value="people">
+                <UserPresence />
+              </TabsContent>
+              <TabsContent value="chat">
+                <Chat />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

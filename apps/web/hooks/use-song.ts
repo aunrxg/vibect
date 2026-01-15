@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { AddSongInput, Song, YTSearchResult } from "@/lib/types";
+import { AddSongInput, Queue, Song, YTSearchResult } from "@/lib/types";
 import { useAuthStore } from "@/store/use-auth-store";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -27,6 +27,20 @@ export const useHistory = (spaceId: string) => {
       return res.data;
     },
     enabled: !!spaceId,
+  });
+};
+
+export const useQueue = (spaceId: string | null) => {
+  const identityKey = useAuthStore((s) => s.identityKey());
+
+  return useQuery({
+    queryKey: ["queue", spaceId, identityKey],
+    queryFn: async (): Promise<Queue> => {
+      const res = await api.get(`/songs/queue/${spaceId}`);
+      return res.data;
+    },
+    enabled: !!spaceId,
+    refetchInterval: 10000, // falling as backup every 10s (ws is primary)
   });
 };
 

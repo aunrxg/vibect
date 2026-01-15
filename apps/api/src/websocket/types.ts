@@ -1,4 +1,4 @@
-import { WebSocket } from "ws";
+import type WebSocket from "ws";
 
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
@@ -7,10 +7,10 @@ export interface AuthenticatedWebSocket extends WebSocket {
   isAlive: boolean;
 }
 
-export interface WSMessage {
-  type: string;
-  data?: any;
-}
+// export interface WSMessage {
+//   type: string;
+//   data?: any;
+// }
 
 export enum WSEvents {
   // client --> server
@@ -43,7 +43,42 @@ export interface TimeSyncPayload {
 export interface PlaybackState {
   spaceId: string;
   currentSongId: string | null;
-  statedAt: number | null;
+  startedAt: number | null;
   isPaused: boolean;
   playbackRate: number;
+}
+
+export interface ClientToServerEvents {
+  [WSEvents.JOIN_SPACE]: JoinSpacePayload;
+  [WSEvents.LEAVE_SPACE]: undefined;
+  [WSEvents.TIME_SYNC]: TimeSyncPayload;
+  [WSEvents.PING]: undefined;
+}
+
+export interface ServerToClientEvents {
+  [WSEvents.QUEUE_UPDATED]: { queue: any[] };
+  [WSEvents.PLAYBACK_UPDATED]: any;
+  [WSEvents.USER_JOINED]: {
+    clientId: string;
+    userId?: string;
+    memberCount: number;
+  };
+  [WSEvents.TIME_SYNC_RESPONSE]: {
+    clientTimestamp: number;
+    ServerTimestamp: number;
+  };
+  [WSEvents.ERROR]: { message: string };
+}
+
+export type WSMessage<T extends WSEvents = WSEvents> = {
+  type: T;
+  data: T extends keyof ClientToServerEvents
+    ? ClientToServerEvents[T]
+    : unknown;
+};
+
+export interface RedisEvent<T = unknown> {
+  spaceId: string;
+  type: WSEvents;
+  data: T;
 }
