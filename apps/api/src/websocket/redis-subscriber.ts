@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { ConnectionManager } from "./connection-manager";
 import { REDIS_CHANNELS } from "../config/constants";
+import { RedisEvent } from "./types";
 
 export class RedisSubscriber {
   constructor(
@@ -26,7 +27,8 @@ export class RedisSubscriber {
 
   private handleRedisMessage(channel: string, message: string): void {
     try {
-      const event = JSON.parse(message);
+      const event: RedisEvent = JSON.parse(message);
+      if (!event.spaceId || !event.type) return;
       const { spaceId, type, data } = event;
 
       if (!spaceId) {

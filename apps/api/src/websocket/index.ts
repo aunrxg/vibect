@@ -3,8 +3,16 @@ import fastifyWebSocket from "@fastify/websocket";
 import { ConnectionManager } from "./connection-manager";
 import { WebSocketHandlers } from "./handlers";
 import { RedisSubscriber } from "./redis-subscriber";
-import { AuthenticatedWebSocket, WSEvents, WSMessage } from "./types";
+import {
+  AuthenticatedWebSocket,
+  JoinSpacePayload,
+  TimeSyncPayload,
+  WSEvents,
+  WSMessage,
+} from "./types";
 import { randomBytes } from "crypto";
+
+const HEARTBEAT_INTERVAL = 30_000;
 
 export async function setupWebSocket(fastify: FastifyInstance) {
   // register ws plugin
@@ -24,27 +32,26 @@ export async function setupWebSocket(fastify: FastifyInstance) {
   await redisSubscriber.subscribe();
 
   // ws routes
-  fastify.get("/ws", { websocket: true }, (s, _) => {
-    const socket = s as AuthenticatedWebSocket;
-
-    socket.clientId = randomBytes(16).toString("hex");
-    socket.isAlive = true;
+  fastify.get("/ws", { websocket: true }, (s, request) => {
+    const socket = initializeSocket(s as AuthenticatedWebSocket);
 
     fastify.log.info(`Websocket client connected: ${socket.clientId}`);
 
     // heart beat
-    const heartbeatInterval = setInterval(() => {
-      if (!socket.isAlive) {
-        clearInterval(heartbeatInterval);
-        if (socket.readyState === socket.OPEN) {
-          socket.terminate();
-        }
-        return;
-      }
+    const heatbeat = setupHeatbeat(socket);
 
-      socket.isAlive = false;
-      socket.ping();
-    }, 30000);
+    // const heartbeatInterval = setInterval(() => {
+    //   if (!socket.isAlive) {
+    //     clearInterval(heartbeatInterval);
+    //     if (socket.readyState === socket.OPEN) {
+    //       socket.terminate();
+    //     }
+    //     return;
+    //   }
+
+    //   socket.isAlive = false;
+    //   socket.ping();
+    // }, 30000);
 
     // pong
     socket.on("pong", () => {
@@ -52,59 +59,16 @@ export async function setupWebSocket(fastify: FastifyInstance) {
     });
 
     // message
-    socket.on("message", async (data: Buffer, request: FastifyRequest) => {
-      try {
-        const message: WSMessage = JSON.parse(data.toString());
-        const { type, data: payload } = message;
-
-        fastify.log.debug(`Receive ${type} from ${socket.clientId}`);
-
-        // route to handlers
-        switch (type) {
-          case WSEvents.JOIN_SPACE:
-            await handlers.handleJoinSpace(socket, payload);
-            break;
-
-          case WSEvents.LEAVE_SPACE:
-            await handlers.handleLeaveSpace(socket);
-            break;
-
-          case WSEvents.TIME_SYNC:
-            await handlers.handleTimeSync(socket, payload, request);
-            break;
-
-          case WSEvents.PING:
-            handlers.handlePing(socket);
-            break;
-
-          default:
-            socket.send(
-              JSON.stringify({
-                type: WSEvents.ERROR,
-                data: { message: `Unknown event type: ${type}` },
-              }),
-            );
-        }
-      } catch (error) {
-        fastify.log.error({ error }, "Error processing websocket message: ");
-        socket.send(
-          JSON.stringify({
-            type: WSEvents.ERROR,
-            data: { message: "Invalid message format" },
-          }),
-        );
-      }
+    socket.on("message", async (data: Buffer) => {
+      handleMessage(fastify, socket, data, request, handlers);
     });
 
-    socket.on("error", () => {
-      clearInterval(heartbeatInterval);
-    });
-
-    socket.on("close", () => {
-      clearInterval(heartbeatInterval);
-      connectionManager.removeConnection(socket);
-      fastify.log.info(`WebSocket client disconnected: ${socket.clientId}`);
-    });
+    socket.on("close", () =>
+      cleanupSocket(fastify, socket, heatbeat, connectionManager),
+    );
+    socket.on("error", () =>
+      cleanupSocket(fastify, socket, heatbeat, connectionManager),
+    );
   });
 
   fastify.addHook("onClose", async () => {
@@ -113,4 +77,100 @@ export async function setupWebSocket(fastify: FastifyInstance) {
   });
 
   fastify.log.info("Websocket server configured at /ws");
+}
+
+function initializeSocket(
+  socket: AuthenticatedWebSocket,
+): AuthenticatedWebSocket {
+  socket.clientId = randomBytes(16).toString("hex");
+  socket.isAlive = true;
+
+  socket.on("pong", () => {
+    socket.isAlive = true;
+  });
+
+  return socket;
+}
+
+function cleanupSocket(
+  app: FastifyInstance,
+  socket: AuthenticatedWebSocket,
+  headbeat: NodeJS.Timeout,
+  manager: ConnectionManager,
+) {
+  clearInterval(headbeat);
+  manager.removeConnection(socket);
+  app.log.info(`WS disconnected: ${socket.clientId}`);
+}
+
+function setupHeatbeat(socket: AuthenticatedWebSocket): NodeJS.Timeout {
+  return setInterval(() => {
+    if (!socket.isAlive) {
+      if (socket.readyState === socket.OPEN) {
+        socket.terminate();
+      }
+      return;
+    }
+
+    socket.isAlive = false;
+    socket.ping();
+  }, HEARTBEAT_INTERVAL);
+}
+
+function handleMessage(
+  app: FastifyInstance,
+  socket: AuthenticatedWebSocket,
+  buffer: Buffer,
+  request: FastifyRequest,
+  handlers: WebSocketHandlers,
+) {
+  let message: WSMessage;
+
+  try {
+    message = JSON.parse(buffer.toString());
+  } catch (error) {
+    app.log.error({ error }, "Error processing messages");
+    return sendError(socket, "Invalid JSON payload");
+  }
+
+  const { type, data } = message;
+
+  app.log.debug(`WS ${type} from ${socket.clientId}`);
+
+  try {
+    switch (type) {
+      case WSEvents.JOIN_SPACE:
+        handlers.handleJoinSpace(socket, data as JoinSpacePayload); // should change later
+        break;
+
+      case WSEvents.LEAVE_SPACE:
+        handlers.handleLeaveSpace(socket);
+        break;
+
+      case WSEvents.TIME_SYNC:
+        handlers.handleTimeSync(socket, data as TimeSyncPayload, request);
+        break;
+
+      case WSEvents.PING:
+        handlers.handlePing(socket);
+        break;
+
+      default:
+        sendError(socket, `Unknown event: ${type}`);
+    }
+  } catch (error) {
+    app.log.error({ error }, "WS handler error");
+    sendError(socket, "Internal websocket error");
+  }
+}
+
+function sendError(socket: AuthenticatedWebSocket, message: string) {
+  if (socket.readyState === socket.OPEN) {
+    socket.send(
+      JSON.stringify({
+        type: WSEvents.ERROR,
+        data: { message },
+      }),
+    );
+  }
 }

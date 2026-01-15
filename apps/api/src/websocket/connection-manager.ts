@@ -9,6 +9,10 @@ export class ConnectionManager {
 
   // add connection to spce
   addToSpace(spaceId: string, socket: AuthenticatedWebSocket): void {
+    if (socket.spaceId && socket.spaceId !== spaceId) {
+      this.removeFromSpace(socket.spaceId, socket);
+    }
+
     if (!this.spaceConnections.has(spaceId)) {
       this.spaceConnections.set(spaceId, new Set());
     }
@@ -45,7 +49,7 @@ export class ConnectionManager {
   }
 
   getSpaceConnections(spaceId: string): Set<AuthenticatedWebSocket> {
-    return this.spaceConnections.get(spaceId) || new Set();
+    return this.spaceConnections.get(spaceId) ?? new Set();
   }
 
   getConnection(clientId: string): AuthenticatedWebSocket | undefined {

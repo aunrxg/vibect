@@ -41,8 +41,7 @@ export class WebSocketHandlers {
             socket.userId = user.id;
           }
         } catch (error) {
-          this.app.log.warn("Failed to authenticate websocket user: ");
-          console.error(error);
+          this.app.log.warn({ error }, "Failed to authenticate websocket user"); // anon user
         }
       }
 
@@ -55,14 +54,18 @@ export class WebSocketHandlers {
       );
 
       if (playbackState) {
-        this.sendMessage(
-          socket,
-          WSEvents.PLAYBACK_UPDATED,
-          JSON.parse(playbackState),
-        );
+        try {
+          this.sendMessage(
+            socket,
+            WSEvents.PLAYBACK_UPDATED,
+            JSON.parse(playbackState),
+          );
+        } catch (error) {
+          this.app.log.warn({ error }, "Invalid playback cache");
+        }
       }
 
-      //send current queue
+      //send current queue EXPENSIVE OPERARION SHOULD MOVE TO REDIS LATER
       const songs = await this.app.prisma.songs.findMany({
         where: {
           spaceId,
@@ -104,7 +107,7 @@ export class WebSocketHandlers {
           data: {
             clientId: socket.clientId,
             userId: socket.userId,
-            memeberCount: this.connectionManager.getSpaceMemberCount(spaceId),
+            memberCount: this.connectionManager.getSpaceMemberCount(spaceId),
           },
         }),
         socket,
@@ -126,6 +129,10 @@ export class WebSocketHandlers {
       return;
     }
 
+    // leave
+    this.connectionManager.removeFromSpace(spaceId, socket);
+    const count = this.connectionManager.getSpaceMemberCount(spaceId);
+
     // notify other socket
     this.connectionManager.broadcastToSpace(
       spaceId,
@@ -134,14 +141,11 @@ export class WebSocketHandlers {
         data: {
           clientId: socket.clientId,
           userId: socket.userId,
-          memeberCount: this.connectionManager.getSpaceMemberCount(spaceId) - 1,
+          memberCount: count,
         },
       }),
       socket,
     );
-
-    // leave
-    this.connectionManager.removeFromSpace(spaceId, socket);
   }
 
   handleTimeSync(
@@ -165,10 +169,15 @@ export class WebSocketHandlers {
   private sendMessage(
     socket: AuthenticatedWebSocket,
     type: string,
-    data?: any,
+    data?: unknown,
   ): void {
-    if (socket.readyState === socket.OPEN) {
+    if (socket.readyState !== socket.OPEN) return;
+
+    try {
       socket.send(JSON.stringify({ type, data }));
+    } catch (error) {
+      this.app.log.warn({ error, clientId: socket.clientId }, "WS Send Failed");
+      this.connectionManager.removeConnection(socket);
     }
   }
 
