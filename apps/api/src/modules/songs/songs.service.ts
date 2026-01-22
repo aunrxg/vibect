@@ -149,7 +149,7 @@ export class SongService {
     return `Guest ${shortId}`;
   }
 
-  async getQueue(spaceId: string, page = 1, limit = 50) {
+  async getQueue(spaceId: string, page = 1, limit = 20) {
     const space = await this.app.prisma.space.findUnique({
       where: { id: spaceId },
     });
@@ -273,7 +273,7 @@ export class SongService {
     return { success: true };
   }
 
-  async getHistory(spaceId: string, page = 1, limit = 50) {
+  async getHistory(spaceId: string, page = 1, limit = 20) {
     const space = await this.app.prisma.space.findUnique({
       where: { id: spaceId },
     });

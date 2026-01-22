@@ -1,9 +1,6 @@
 import { FastifyPluginAsync } from "fastify";
 import { SongService } from "./songs.service";
-import {
-  authenticate,
-  authenticateOrAnonymous,
-} from "../../middleware/auth.middleware";
+import { authenticateOrAnonymous } from "../../middleware/auth.middleware";
 import {
   addSongSchema,
   deleteSongSchema,
@@ -24,7 +21,10 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const query = searchSongSchema.parse(request.query);
-      const results = await songsService.search(query.query, query.maxResult);
+      const results = await songsService.search(
+        query.query,
+        (query.maxResult = 10),
+      );
       return sendSuccess(reply, results, "search results fetched");
     },
   );
@@ -37,9 +37,10 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { spaceId } = request.params as { spaceId: string };
-      const { page = 1, limit = 50 } = getQueueQuerySchema.parse(request.query);
-
-      const results = await songsService.getQueue(spaceId, page, limit);
+      const { page, limit } = getQueueQuerySchema.parse(request.query);
+      const p = parseInt(page ?? "1");
+      const l = parseInt(page ?? "20");
+      const results = await songsService.getQueue(spaceId, p, l);
       return sendSuccess(reply, results, "queue fetch successfully");
     },
   );
@@ -54,7 +55,7 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
       const body = addSongSchema.parse(request.body);
 
       if (!request.user) {
-        throw new UnauthorizedError("Authentication required to add a song");
+        throw new UnauthorizedError("Token missing");
       }
 
       const song = await songsService.addSong(
@@ -99,13 +100,14 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/history/:spaceId",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { spaceId } = request.params as { spaceId: string };
-      const { page = 1, limit = 50 } = getQueueQuerySchema.parse(request.query);
-
-      const result = await songsService.getHistory(spaceId, page, limit);
+      const { page, limit } = getQueueQuerySchema.parse(request.query);
+      const p = parseInt(page ?? "1");
+      const l = parseInt(limit ?? "20");
+      const result = await songsService.getHistory(spaceId, p, l);
 
       return sendSuccess(reply, result, "fetched space history successfully");
     },

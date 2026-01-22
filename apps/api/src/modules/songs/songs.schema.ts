@@ -10,8 +10,8 @@ export const deleteSongSchema = z.object({
 });
 
 export const getQueueQuerySchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(50),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 });
 
 export const searchSongSchema = z.object({
