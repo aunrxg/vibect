@@ -28,12 +28,12 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
       preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
-      const { page = 1, limit = 20 } = listPublicSpacesSchema.parse(
-        request.query,
-      );
+      const { page, limit } = listPublicSpacesSchema.parse(request.query);
+      const p = parseInt(page ?? "1");
+      const l = parseInt(limit ?? "20");
       const { spaces, meta } = await spaceService.listPublicSpaces({
-        page,
-        limit,
+        page: p,
+        limit: l,
       });
       return sendPaginated(reply, spaces, meta);
     },
@@ -85,7 +85,7 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
       const params = updateSpaceSchema.parse(request.params);
       const body = updateSpaceSchema.omit({ id: true }).parse(request.body);
       const space = await spaceService.updateSpace(
-        { ...params, ...body },
+        { id: params.id, ...body },
         request.user!.id,
       );
       return sendSuccess(

@@ -3,7 +3,7 @@ import {
   CreateSpaceInput,
   DeleteSpaceInput,
   GetSpaceInput,
-  ListPublicSpacesInput,
+  // ListPublicSpacesInput,
   UpdateSpaceInput,
 } from "./spaces.schema";
 import { ForbiddenError, NotFoundError } from "../../utils/error";
@@ -86,8 +86,14 @@ export class SpaceService {
     return space;
   }
 
-  async listPublicSpaces(input: ListPublicSpacesInput) {
-    const { page = 1, limit = 20 } = input;
+  async listPublicSpaces({
+    page = 1,
+    limit = 20,
+  }: {
+    page: number;
+    limit: number;
+  }) {
+    // const { page = 1, limit = 20 } = input;
     const total = await this.app.prisma.space.count({
       where: { isPublic: true },
     });
@@ -113,7 +119,7 @@ export class SpaceService {
   async updateSpace(input: UpdateSpaceInput, userId: string) {
     const { id, ...data } = input;
     const space = await this.app.prisma.space.findUnique({
-      where: { id: id },
+      where: { id: input.id },
     });
 
     if (!space) {
@@ -125,7 +131,7 @@ export class SpaceService {
     }
 
     const updated = await this.app.prisma.space.update({
-      where: { id: id },
+      where: { id },
       data,
       include: {
         owner: {

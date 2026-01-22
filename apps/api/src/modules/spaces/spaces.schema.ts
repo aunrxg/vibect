@@ -22,12 +22,12 @@ export const deleteSpaceSchema = z.object({
 });
 
 export const listPublicSpacesSchema = z.object({
-  page: z.number().min(1).default(1),
-  limit: z.number().min(1).default(10),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 });
 
 export type CreateSpaceInput = z.infer<typeof createSpaceSchema>;
 export type GetSpaceInput = z.infer<typeof getSpaceSchema>;
 export type UpdateSpaceInput = z.infer<typeof updateSpaceSchema>;
 export type DeleteSpaceInput = z.infer<typeof deleteSpaceSchema>;
-export type ListPublicSpacesInput = z.infer<typeof listPublicSpacesSchema>;
+// export type ListPublicSpacesInput = z.infer<typeof listPublicSpacesSchema>;
