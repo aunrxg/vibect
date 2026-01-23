@@ -68,38 +68,7 @@ export class VoteService {
               },
             })
             .catch(() => {});
-          // try {
-          //   vote = await this.app.prisma.anonymousVote.delete({
-          //     where: {
-          //       songId_anonymousId: {
-          //         songId,
-          //         anonymousId: userId,
-          //       },
-          //     },
-          //   });
-          // } catch (error) {
-          //   vote = null;
-          //   this.app.log.debug({ error }, "vote is null");
-          // }
         } else {
-          // upsert vote
-          // vote = await this.app.prisma.anonymousVote.upsert({
-          //   where: {
-          //     songId_anonymousId: {
-          //       songId,
-          //       anonymousId: userId,
-          //     },
-          //   },
-          //   update: {
-          //     value,
-          //     updatedAt: new Date(),
-          //   },
-          //   create: {
-          //     songId,
-          //     anonymousId: userId,
-          //     value,
-          //   },
-          // });
           vote = await tx.anonymousVote.upsert({
             where: {
               songId_anonymousId: {
@@ -114,19 +83,6 @@ export class VoteService {
       } else {
         // handle registered user vote
         if (value === 0) {
-          // try {
-          //   vote = await this.app.prisma.votes.delete({
-          //     where: {
-          //       songId_userId: {
-          //         songId,
-          //         userId,
-          //       },
-          //     },
-          //   });
-          // } catch (error) {
-          //   vote = null;
-          //   this.app.log.debug({ error }, "vote is null");
-          // }
           await tx.votes
             .delete({
               where: {
@@ -135,23 +91,6 @@ export class VoteService {
             })
             .catch(() => {});
         } else {
-          // vote = await this.app.prisma.votes.upsert({
-          //   where: {
-          //     songId_userId: {
-          //       songId,
-          //       userId,
-          //     },
-          //   },
-          //   update: {
-          //     value,
-          //     updatedAt: new Date(),
-          //   },
-          //   create: {
-          //     songId,
-          //     userId,
-          //     value,
-          //   },
-          // });
           vote = await tx.votes.upsert({
             where: {
               songId_userId: { songId, userId },
@@ -162,18 +101,6 @@ export class VoteService {
         }
       }
     });
-
-    // const updatedSong = await this.app.prisma.songs.findUnique({
-    //   where: { id: songId },
-    //   include: {
-    //     votes: true,
-    //     anonymousVotes: true,
-    //   },
-    // });
-
-    // const score =
-    //   updatedSong!.votes.reduce((sum, v) => sum + v.value, 0) +
-    //   updatedSong!.anonymousVotes.reduce((sum, v) => sum + v.value, 0);
 
     const [voteAgg, anonAgg] = await Promise.all([
       this.app.prisma.votes.aggregate({

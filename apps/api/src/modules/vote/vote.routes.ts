@@ -1,9 +1,6 @@
 import { FastifyPluginAsync } from "fastify";
 import { VoteService } from "./vote.service";
-import {
-  authenticate,
-  authenticateOrAnonymous,
-} from "../../middleware/auth.middleware";
+import { authenticateOrAnonymous } from "../../middleware/auth.middleware";
 import {
   getSongVotesSchema,
   getUserVoteSchema,
@@ -62,11 +59,10 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/user/:spaceId",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { spaceId } = getUserVoteSchema.parse(request.params);
-
       const votes = await voteService.getUserVote(spaceId, request.user!.id);
 
       return sendSuccess(reply, votes, "User's vote fetched successfully");
@@ -112,7 +108,7 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/stats/:spaceId",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticateOrAnonymous],
     },
     async (request, reply) => {
       const { spaceId } = request.params as { spaceId: string };

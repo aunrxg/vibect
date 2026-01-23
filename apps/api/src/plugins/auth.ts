@@ -12,7 +12,7 @@ declare module "fastify" {
       id: string;
       email: string;
       name?: string;
-      isAnonymous?: boolean;
+      isAnonymous: boolean;
     };
   }
 }

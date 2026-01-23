@@ -39,7 +39,7 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
       const { spaceId } = request.params as { spaceId: string };
       const { page, limit } = getQueueQuerySchema.parse(request.query);
       const p = parseInt(page ?? "1");
-      const l = parseInt(page ?? "20");
+      const l = parseInt(limit ?? "20");
       const results = await songsService.getQueue(spaceId, p, l);
       return sendSuccess(reply, results, "queue fetch successfully");
     },
