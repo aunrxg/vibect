@@ -80,7 +80,7 @@ export class PlaybackService {
 
     // mark song as played in db
     await this.app.prisma.songs.update({
-      where: { id: songId },
+      where: { id: songId, spaceId },
       data: { playedAt: new Date() },
     });
 

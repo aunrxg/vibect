@@ -163,7 +163,7 @@ export class WebSocketHandlers {
 
   handlePing(socket: AuthenticatedWebSocket): void {
     socket.isAlive = true;
-    this.sendMessage(socket, WSEvents.PING, { timeStamp: Date.now() });
+    this.sendMessage(socket, WSEvents.PONG, { timeStamp: Date.now() });
   }
 
   private sendMessage(

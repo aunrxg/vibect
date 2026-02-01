@@ -14,6 +14,7 @@ import songRoutes from "./modules/songs/songs.routes";
 import votesRoutes from "./modules/vote/vote.routes";
 import { setupWebSocket } from "./websocket";
 import redis from "./plugins/redis";
+import playbackRoutes from "./modules/playback/playback.route";
 
 export async function buildApp() {
   const app = Fastify({
@@ -59,6 +60,7 @@ export async function buildApp() {
   app.register(spaceRoute, { prefix: "/api/v1/spaces" });
   app.register(songRoutes, { prefix: "/api/v1/songs" });
   app.register(votesRoutes, { prefix: "/api/v1/votes" });
+  app.register(playbackRoutes, { prefix: "/api/v1/playback" });
 
   return app;
 }
