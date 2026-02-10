@@ -3,13 +3,16 @@ import { AddSongInput, Queue, Song, YTSearchResult } from "@/lib/types";
 import { useAuthStore } from "@/store/use-auth-store";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const useYoutubeSearch = (query: string) => {
+// search songs
+export const useYoutubeSearch = (query: string, maxResults: number = 10) => {
   const identityKey = useAuthStore((s) => s.identityKey());
 
   return useQuery({
-    queryKey: ["youtube", "search", query, identityKey],
+    queryKey: ["youtube", "search", query, identityKey, maxResults],
     queryFn: async (): Promise<YTSearchResult[]> => {
-      const res = await api.get("/songs/search", { params: { q: query } });
+      const res = await api.get("/songs/search", {
+        params: { query, maxResults },
+      });
       return res.data;
     },
     enabled: query.length > 0,
@@ -17,27 +20,63 @@ export const useYoutubeSearch = (query: string) => {
   });
 };
 
-export const useHistory = (spaceId: string) => {
+// history of space: played songs
+export const useHistory = (
+  spaceId: string,
+  page: number = 1,
+  limit: number = 20,
+) => {
   const identityKey = useAuthStore((s) => s.identityKey());
 
   return useQuery({
-    queryKey: ["history", spaceId, identityKey],
+    queryKey: ["history", spaceId, identityKey, limit],
     queryFn: async (): Promise<Song[]> => {
-      const res = await api.get(`/songs/history/${spaceId}`);
+      const res = await api.get(`/songs/history/${spaceId}`, {
+        params: { page, limit },
+      });
       return res.data;
     },
     enabled: !!spaceId,
   });
 };
 
+// queue for a song
 export const useQueue = (spaceId: string | null) => {
   const identityKey = useAuthStore((s) => s.identityKey());
-
+  const { id } = useAuthStore((s) => s.identity);
   return useQuery({
     queryKey: ["queue", spaceId, identityKey],
     queryFn: async (): Promise<Queue> => {
       const res = await api.get(`/songs/queue/${spaceId}`);
-      return res.data;
+      // extract songs from nested response
+      const songs = res.data?.songs;
+
+      return songs
+        .map((song: any) => {
+          // find current user vote in the votes array
+          const userVote = song.votes?.find((v: any) => v.userId === id);
+          const anonymousVote = song.anonymousVotes?.find(
+            (v: any) => v.anonymousId === id,
+          );
+
+          return {
+            id: song.id,
+            spaceId: song.spaceId,
+            youtubeId: song.youtubeId,
+            title: song.title,
+            thumbnail: song.thumbnail,
+            duration: song.duration,
+            addedById: song.addedById,
+            addedByAnon: song.addedByAnonymous,
+            addedAt: song.addedAt,
+            voteCount: song.score || 0,
+            position: 0, // will be set by sort order
+            userVote: userVote?.value || anonymousVote?.value || 0,
+            artist: song.artist,
+            addedByUser: song.addedBy,
+          };
+        })
+        .sort((a: any, b: any) => b.voteCount - a.voteCount);
     },
     enabled: !!spaceId,
     refetchInterval: 10000, // falling as backup every 10s (ws is primary)

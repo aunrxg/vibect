@@ -17,11 +17,18 @@ export interface Song {
   title: string;
   thumbnail: string;
   duration: number;
-  addedBy: string;
+  addedById?: string;
+  addedByAnon?: string;
   addedAt: string;
   voteCount: number;
   position: number;
   userVote?: -1 | 0 | 1; // Current user's vote
+  artist?: string;
+  addedByUser?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
 }
 
 export interface Vote {

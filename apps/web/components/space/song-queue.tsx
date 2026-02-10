@@ -11,10 +11,59 @@ import { ScrollArea } from "../ui/scroll-area";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { Song } from "@/lib/types";
+import { useAuthStore } from "@/store/use-auth-store";
+import { useRemoveVote, useVote } from "@/hooks/use-vote";
+import { useDeleteSong } from "@/hooks/use-song";
+import { usePlayerStore } from "@/store/use-player-store";
 
-export default function SongQueue() {
-  const queueSongs = [];
-  const userRole = "viewer";
+export default function SongQueue({
+  queueSongs,
+  creator,
+  spaceId,
+}: {
+  queueSongs: Song[];
+  creator: string;
+  spaceId: string;
+}) {
+  const { mutate: vote } = useVote();
+  const { mutate: removeVote } = useRemoveVote();
+  const { mutate: deleteSong } = useDeleteSong();
+
+  const { id } = useAuthStore((s) => s.identity);
+  const { setCurrentSong, play } = usePlayerStore();
+
+  function getUserRole(id: string, creator: string) {
+    if (id === creator) return "creator";
+    else return "viewer";
+  }
+  const userRole = getUserRole(id, creator);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleVote = (songId: string, value: -1 | 1, currentVote: number) => {
+    if (currentVote === value) {
+      removeVote({ songId, spaceId });
+    } else {
+      vote({ songId, value, spaceId });
+    }
+  };
+
+  const handleDelete = (songId: string) => {
+    if (confirm("Remove this song from queue?")) {
+      deleteSong({ songId, spaceId });
+    }
+  };
+
+  const handlePlaySong = (song: Song) => {
+    if (userRole !== "creator") return;
+    setCurrentSong(song);
+    play();
+  };
 
   if (queueSongs.length === 0) {
     return (
@@ -46,7 +95,7 @@ export default function SongQueue() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="relative flex-shrink-0">
+                  <div className="relative shrink-0">
                     <Image
                       src={song.thumbnail || "/placeholder.svg"}
                       alt={song.title}
@@ -82,20 +131,21 @@ export default function SongQueue() {
                             : song.title}
                         </h4>
                         <p className="text-xs text-muted-foreground truncate">
-                          {song.author.length > 35
-                            ? song.author.slice(0, 35) + "..."
-                            : song.author}
+                          {song.artist.length > 35
+                            ? song.artist.slice(0, 35) + "..."
+                            : song.artist}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant="outline"
                             className="text-xs px-1 py-0"
                           >
-                            {getPlatformIcon(song.platform)} {song.platform}
+                            {/* {getPlatformIcon(song.platform)} {song.platform} */}
+                            🎥
                           </Badge>
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {formatDuration(song.duration_seconds)}
+                            {formatDuration(song.duration)}
                           </span>
                         </div>
                       </div>
@@ -103,11 +153,9 @@ export default function SongQueue() {
                       <div className="flex flex-col items-center gap-1">
                         <Button
                           size="sm"
-                          variant={
-                            userVotes[song.id] === "up" ? "default" : "outline"
-                          }
+                          variant={song.userVote === 1 ? "default" : "outline"}
                           className="h-6 w-6 p-0"
-                          onClick={() => handleVote(song.id, 1)}
+                          onClick={() => handleVote(song.id, 1, song.userVote)}
                         >
                           <ChevronUp className="h-3 w-3" />
                         </Button>
@@ -115,24 +163,33 @@ export default function SongQueue() {
                         <Button
                           size="sm"
                           variant={
-                            userVotes[song.id] === "down"
-                              ? "destructive"
-                              : "outline"
+                            song.userVote === -1 ? "destructive" : "outline"
                           }
                           className="h-6 w-6 p-0"
-                          onClick={() => handleVote(song.id, -1)}
+                          onClick={() => handleVote(song.id, -1, song.userVote)}
                         >
                           <ChevronDown className="h-3 w-3" />
                         </Button>
+                        {(id === (song.addedById || song.addedByAnon) ||
+                          userRole === "creator") && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleDelete(song.id)}
+                            className="h-6 w-6 p-0"
+                            variant="destructive"
+                          >
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-muted-foreground">
-                        Added by {song.created_by ? "Users" : "Anonymous"}
+                        Added by {song.addedById ?? song.addedByAnon}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(song.created_at).toLocaleTimeString()}
+                        {new Date(song.addedAt).toLocaleTimeString()}
                       </span>
                     </div>
                   </div>
