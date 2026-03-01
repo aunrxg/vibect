@@ -11,15 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Music, Share2 } from "lucide-react";
 // zustand state stores
 import { useAuthStore } from "@/store/use-auth-store";
+import { useSpaceStore } from "@/store/use-space-store";
 // next
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+// hooks
 import { useSpace } from "@/hooks/use-space";
 import { useSpaceWebSocket } from "@/hooks/use-space-ws";
-import { useAddSong, useQueue } from "@/hooks/use-song";
-import { useRemoveVote, useUserVotes, useVote } from "@/hooks/use-vote";
-import { useSpaceStore } from "@/store/use-space-store";
-import { useEffect, useState } from "react";
+import { useQueue } from "@/hooks/use-song";
 
 export default function SpacePage() {
   const { id: spaceId } = useParams<{ id: string }>();
@@ -29,7 +29,8 @@ export default function SpacePage() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   // zustand states
-  const { identity, isAuthenticated } = useAuthStore();
+  const { identity } = useAuthStore();
+  const id = identity.id;
   const setCurrentSpace = useSpaceStore((s) => s.setCurrentSpace);
 
   // fetch base data
@@ -39,16 +40,8 @@ export default function SpacePage() {
     error: spaceError,
   } = useSpace(spaceId);
   const { data: queue, isLoading: queueLoading } = useQueue(spaceId);
-  // fetch users vote
-  const { data: userVotes } = useUserVotes(spaceId);
-
-  // mutations
-  const addSong = useAddSong();
-  const vote = useVote();
-  const removeVote = useRemoveVote();
-
   // ws connection
-  const { isConnected, connectionState } = useSpaceWebSocket(spaceId);
+  const { connectionState } = useSpaceWebSocket(spaceId);
 
   // set current space in global state
   useEffect(() => {
@@ -83,12 +76,6 @@ export default function SpacePage() {
     );
   }
 
-  // attach user votes
-  const enrichQueue = queue.songs.map((song) => ({
-    ...song,
-    userVote: userVotes[song.id] ?? 0,
-  }));
-
   const handleShareLink = async () => {
     const shareUrl = `${window.location.origin}/space/${spaceId}`;
     try {
@@ -104,15 +91,21 @@ export default function SpacePage() {
     {
       name: "Queue",
       value: "queue",
-      count: 8,
-      content: <SongQueue />,
+      count: queue?.meta.total,
+      content: (
+        <SongQueue
+          queueSongs={queue?.songs}
+          creator={space.ownerId}
+          spaceId={spaceId}
+        />
+      ),
     },
-    {
-      name: "People",
-      value: "people",
-      count: 5,
-      content: <UserPresence />,
-    },
+    // {
+    //   name: "People",
+    //   value: "people",
+    //   count: 5,
+    //   content: <UserPresence creator={space.ownerId} />,
+    // },
     {
       name: "Chat",
       value: "chat",
@@ -162,13 +155,9 @@ export default function SpacePage() {
                 key={spaceId}
                 connectionState={connectionState}
               />
-              {/* <Badge
-                variant={
-                  currentUser?.role === "creator" ? "default" : "secondary"
-                }
-              >
-                {currentUser?.role === "creator" ? "Creator" : "Viewer"}
-              </Badge> */}
+              <Badge variant={id === space.ownerId ? "default" : "secondary"}>
+                {id === space.ownerId ? "Creator" : "Viewer"}
+              </Badge>
               <Button
                 variant="outline"
                 size="sm"

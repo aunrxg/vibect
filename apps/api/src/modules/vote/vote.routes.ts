@@ -1,6 +1,9 @@
 import { FastifyPluginAsync } from "fastify";
 import { VoteService } from "./vote.service";
-import { authenticateOrAnonymous } from "../../middleware/auth.middleware";
+import {
+  authenticate,
+  authenticateOrAnonymous,
+} from "../../middleware/auth.middleware";
 import {
   getSongVotesSchema,
   getUserVoteSchema,
@@ -59,7 +62,7 @@ const votesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/user/:spaceId",
     {
-      preHandler: [authenticateOrAnonymous],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       const { spaceId } = getUserVoteSchema.parse(request.params);

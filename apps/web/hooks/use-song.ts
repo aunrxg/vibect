@@ -43,7 +43,8 @@ export const useHistory = (
 // queue for a song
 export const useQueue = (spaceId: string | null) => {
   const identityKey = useAuthStore((s) => s.identityKey());
-  const { id } = useAuthStore((s) => s.identity);
+  const { identity } = useAuthStore();
+  const id = identity?.id;
   return useQuery({
     queryKey: ["queue", spaceId, identityKey],
     queryFn: async (): Promise<Queue> => {
@@ -51,32 +52,34 @@ export const useQueue = (spaceId: string | null) => {
       // extract songs from nested response
       const songs = res.data?.songs;
 
-      return songs
-        .map((song: any) => {
-          // find current user vote in the votes array
-          const userVote = song.votes?.find((v: any) => v.userId === id);
-          const anonymousVote = song.anonymousVotes?.find(
-            (v: any) => v.anonymousId === id,
-          );
-
-          return {
-            id: song.id,
-            spaceId: song.spaceId,
-            youtubeId: song.youtubeId,
-            title: song.title,
-            thumbnail: song.thumbnail,
-            duration: song.duration,
-            addedById: song.addedById,
-            addedByAnon: song.addedByAnonymous,
-            addedAt: song.addedAt,
-            voteCount: song.score || 0,
-            position: 0, // will be set by sort order
-            userVote: userVote?.value || anonymousVote?.value || 0,
-            artist: song.artist,
-            addedByUser: song.addedBy,
-          };
-        })
-        .sort((a: any, b: any) => b.voteCount - a.voteCount);
+      return {
+        meta: res.data?.meta,
+        songs: songs
+          .map((song: any) => {
+            // find current user vote in the votes array
+            const userVote = song.votes?.find((v: any) => v.userId === id);
+            const anonymousVote = song.anonymousVotes?.find(
+              (v: any) => v.anonymousId === id,
+            );
+            return {
+              id: song.id,
+              spaceId: song.spaceId,
+              youtubeId: song.youtubeId,
+              title: song.title,
+              thumbnail: song.thumbnailUrl,
+              duration: song.duration,
+              addedById: song.addedById,
+              addedByAnon: song.addedByAnonymous,
+              addedAt: song.addedAt,
+              voteCount: song.score || 0,
+              position: 0, // will be set by sort order
+              userVote: userVote?.value || anonymousVote?.value || 0,
+              artist: song.artist,
+              addedByUser: song.addedBy,
+            };
+          })
+          .sort((a: any, b: any) => b.voteCount - a.voteCount),
+      };
     },
     enabled: !!spaceId,
     refetchInterval: 10000, // falling as backup every 10s (ws is primary)

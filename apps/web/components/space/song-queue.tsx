@@ -5,6 +5,7 @@ import {
   Lock,
   Music2,
   Play,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { ScrollArea } from "../ui/scroll-area";
@@ -104,7 +105,7 @@ export default function SongQueue({
                       className="w-16 h-12 object-cover rounded bg-muted"
                     />
                     {userRole === "creator" && (
-                      <div className="absolute inset-0rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute inset-0rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                         <Button
                           size="sm"
                           variant="secondary"
@@ -116,7 +117,7 @@ export default function SongQueue({
                       </div>
                     )}
                     {userRole === "viewer" && (
-                      <div className="absolute inset-0 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute inset-0 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                         <Lock className="h-3 w-3 text-white" />
                       </div>
                     )}
@@ -154,7 +155,7 @@ export default function SongQueue({
                         <Button
                           size="sm"
                           variant={song.userVote === 1 ? "default" : "outline"}
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 cursor-pointer"
                           onClick={() => handleVote(song.id, 1, song.userVote)}
                         >
                           <ChevronUp className="h-3 w-3" />
@@ -165,7 +166,7 @@ export default function SongQueue({
                           variant={
                             song.userVote === -1 ? "destructive" : "outline"
                           }
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 cursor-pointer"
                           onClick={() => handleVote(song.id, -1, song.userVote)}
                         >
                           <ChevronDown className="h-3 w-3" />
@@ -175,10 +176,10 @@ export default function SongQueue({
                           <Button
                             size="sm"
                             onClick={() => handleDelete(song.id)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 cursor-pointer"
                             variant="destructive"
                           >
-                            Delete
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         )}
                       </div>

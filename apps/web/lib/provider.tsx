@@ -4,14 +4,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ReactNode, useEffect } from "react";
 import { queryClient } from "./queryClient";
-import { useAuthStore } from "@/store/use-auth-store";
+import { useAuthInitialization } from "@/hooks/use-auth";
 
 export function Provider({ children }: { children: ReactNode }) {
-  const init = useAuthStore((s) => s.init);
+  const { isInitialized } = useAuthInitialization();
 
-  useEffect(() => {
-    init();
-  }, [init]);
+  if (!isInitialized) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

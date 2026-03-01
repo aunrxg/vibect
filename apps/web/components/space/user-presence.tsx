@@ -2,10 +2,11 @@ import { Crown, User, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
+import { useAuthStore } from "@/store/use-auth-store";
 
-export default function UserPresence() {
+export default function UserPresence({ creator }: { creator: string }) {
   const users = [];
-  const isCreator = true;
+  const { id } = useAuthStore((s) => s.identity);
   return (
     <Card className="border-none">
       {/* <CardHeader>
@@ -34,7 +35,7 @@ export default function UserPresence() {
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
-                      {isCreator(user) ? (
+                      {id === creator ? (
                         <Crown className="h-4 w-4 text-yellow-500" />
                       ) : (
                         <User className="h-4 w-4 text-muted-foreground" />
