@@ -45,7 +45,7 @@ export interface Vote {
 }
 
 export interface YTSearchResult {
-  videoId: string;
+  id: string;
   title: string;
   thumbnail: string;
   duration: number;

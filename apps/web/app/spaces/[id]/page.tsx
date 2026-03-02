@@ -97,6 +97,8 @@ export default function SpacePage() {
           queueSongs={queue?.songs}
           creator={space.ownerId}
           spaceId={spaceId}
+          currentSongId={space.currentSongId}
+          spaceName={space.name}
         />
       ),
     },
@@ -114,8 +116,8 @@ export default function SpacePage() {
     },
   ];
   return (
-    <main className="h-screen w-full">
-      <header className="border-b backdrop-blur-sm sticky top-0 z-50">
+    <main className="h-screen w-full bg-[#030303] text-white">
+      <header className="border-b border-white/10 backdrop-blur-sm sticky top-0 z-50 bg-[#030303]/80">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -123,7 +125,7 @@ export default function SpacePage() {
                 href="/"
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <Music className="h-8 w-8 text-primary" />
+                <Music className="h-8 w-8 text-white" />
                 <span className="text-lg font-bold">Vitect</span>
               </Link>
               <div className="hidden sm:block w-px h-6 bg-border" />
