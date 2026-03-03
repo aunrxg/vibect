@@ -111,16 +111,23 @@ export const useAddSong = () => {
       //optimistic update
       queryClient.setQueryData(
         ["queue", newSong.spaceId, identityKey],
-        (old: Song[] = []) => [
-          ...old,
-          {
-            id: `temp-${Date.now()}`,
-            ...newSong,
-            voteCount: 0,
-            position: old.length,
-            addedAt: new Date().toISOString(),
-          },
-        ],
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            meta: { ...old.meta, total: old.meta.total + 1 },
+            songs: [
+              ...old.songs,
+              {
+                id: `temp-${Date.now()}`,
+                ...newSong,
+                voteCount: 0,
+                position: old.songs.length,
+                addedAt: new Date().toISOString(),
+              },
+            ],
+          };
+        },
       );
 
       return { prevQueue };
@@ -167,10 +174,14 @@ export const useDeleteSong = () => {
         identityKey,
       ]);
 
-      queryClient.setQueryData(
-        ["queue", spaceId, identityKey],
-        (old: Song[] = []) => old.filter((song) => song.id !== songId),
-      );
+      queryClient.setQueryData(["queue", spaceId, identityKey], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          meta: { ...old.meta, total: Math.max(0, old.meta.total - 1) },
+          songs: old.songs.filter((song: Song) => song.id !== songId),
+        };
+      });
 
       return { prevQueue };
     },

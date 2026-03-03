@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const addSongSchema = z.object({
   spaceId: z.uuid(),
-  youtubeUrl: z.string().min(1, "Youtube URL is required"),
+  youtubeId: z.string().min(1, "Youtube URL is required"),
 });
 
 export const deleteSongSchema = z.object({

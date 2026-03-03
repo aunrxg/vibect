@@ -93,7 +93,6 @@ export default function SongQueue({
   };
 
   const handleAddFromSearch = (result: any) => {
-    console.log("we are in baby result: ", result);
     addSong({
       spaceId,
       youtubeId: result.id,
@@ -319,13 +318,21 @@ export default function SongQueue({
                   </div>
 
                   <div className="flex items-center justify-end w-[130px] shrink-0">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 transition-opacity",
+                        song.userVote !== 0
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100",
+                      )}
+                    >
                       <Button
                         size="sm"
                         variant="ghost"
                         className={cn(
                           "h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/10",
-                          song.userVote === 1 && "text-white",
+                          song.userVote === 1 &&
+                            "text-green-500 bg-green-500/10 hover:bg-green-500/20 hover:text-green-400",
                         )}
                         onClick={() => handleVote(song.id, 1, song.userVote)}
                       >
@@ -336,7 +343,8 @@ export default function SongQueue({
                         variant="ghost"
                         className={cn(
                           "h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-white/10",
-                          song.userVote === -1 && "text-red-400",
+                          song.userVote === -1 &&
+                            "text-red-500 bg-red-500/10 hover:bg-red-500/20 hover:text-red-400",
                         )}
                         onClick={() => handleVote(song.id, -1, song.userVote)}
                       >
@@ -355,7 +363,12 @@ export default function SongQueue({
                       )}
                     </div>
 
-                    <div className="text-xs text-slate-500 font-medium whitespace-nowrap group-hover:hidden px-2">
+                    <div
+                      className={cn(
+                        "text-xs text-slate-500 font-medium whitespace-nowrap px-2 flex-none",
+                        song.userVote !== 0 ? "hidden" : "group-hover:hidden",
+                      )}
+                    >
                       {formatDuration(song.duration)}
                     </div>
                   </div>

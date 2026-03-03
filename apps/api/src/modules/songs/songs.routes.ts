@@ -60,7 +60,7 @@ const songRoutes: FastifyPluginAsync = async (fastify) => {
 
       const song = await songsService.addSong(
         body.spaceId,
-        body.youtubeUrl,
+        body.youtubeId,
         request.user.isAnonymous || false,
         request.user.id,
       );

@@ -62,6 +62,7 @@ export const useSpaceStat = (spaceId: string | null) => {
 export const useVote = () => {
   const queryClient = useQueryClient();
   const identityKey = useAuthStore((s) => s.identityKey());
+  console.log("useVote hook called");
 
   return useMutation({
     mutationFn: async ({
@@ -95,11 +96,12 @@ export const useVote = () => {
       ]);
 
       // optimic update
-      queryClient.setQueryData(
-        ["queue", spaceId, identityKey],
-        (old: Song[] = []) => {
-          return old
-            .map((song) => {
+      queryClient.setQueryData(["queue", spaceId, identityKey], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          songs: old.songs
+            .map((song: Song) => {
               if (song.id === songId) {
                 const currentUserVote = song.userVote || 0;
                 const voteDiff = value - currentUserVote;
@@ -111,13 +113,13 @@ export const useVote = () => {
               }
               return song;
             })
-            .sort((a, b) => b.voteCount - a.voteCount);
-        },
-      );
+            .sort((a: Song, b: Song) => b.voteCount - a.voteCount),
+        };
+      });
 
       //optimistic update user votes
       queryClient.setQueryData(
-        ["votes", "user", spaceId],
+        ["votes", "user", spaceId, identityKey],
         (old: Record<string, -1 | 1> = {}) => ({
           ...old,
           [songId]: value,
@@ -186,11 +188,12 @@ export const useRemoveVote = () => {
         identityKey,
       ]);
 
-      queryClient.setQueryData(
-        ["queue", spaceId, identityKey],
-        (old: Song[] = []) => {
-          return old
-            .map((song) => {
+      queryClient.setQueryData(["queue", spaceId, identityKey], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          songs: old.songs
+            .map((song: Song) => {
               if (song.id === songId) {
                 const currentUserVote = song.userVote || 0;
                 return {
@@ -201,9 +204,9 @@ export const useRemoveVote = () => {
               }
               return song;
             })
-            .sort((a, b) => b.voteCount - a.voteCount);
-        },
-      );
+            .sort((a: Song, b: Song) => b.voteCount - a.voteCount),
+        };
+      });
 
       queryClient.setQueryData(
         ["votes", "user", spaceId, identityKey],
@@ -233,7 +236,7 @@ export const useRemoveVote = () => {
     onSettled: (_d, _e, variables) => {
       // websocket will handel real time updates, but invalidate backups
       queryClient.invalidateQueries({
-        queryKey: ["queue", variables.spaceId],
+        queryKey: ["queue", variables.spaceId, identityKey],
       });
     },
   });
