@@ -5,6 +5,8 @@ import Chat from "@/components/space/chat";
 import { ConnectionStatus } from "@/components/space/connection-status";
 import SongQueue from "@/components/space/song-queue";
 import UserPresence from "@/components/space/user-presence";
+import NowPlaying from "@/components/space/now-playing";
+import MusicPlayer from "@/components/space/music-player";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -192,13 +194,9 @@ export default function SpacePage() {
           </div>
         </div>
       </header>
-      <div className="flex h-11/12 flex-col md:flex-row">
-        <section className="bg-green-400 h-full w-full md:w-3/5 overflow-hidden">
-          {/* <AspectRatio ratio={1 / 1} className="relative flex items-center justify-center">
-             <Image src="https://img.freepik.com/free-psd/neon-void-cd-cover-template_23-2152015422.jpg?semt=ais_hybrid&w=740&q=80" alt="album" fill
-            sizes="(max-width: 768px) 100vw, 33vw" className="object-cover object-center"
-            priority={false} />
-          </AspectRatio> */}
+      <div className="flex flex-1 flex-col md:flex-row min-h-0 relative pb-28 sm:pb-24">
+        <section className="h-full w-full md:w-3/5 overflow-hidden border-r border-white/5">
+          <NowPlaying />
         </section>
         <section className="h-full w-full md:w-2/5">
           <div className="w-full h-full flex flex-col gap-6 items-center">
@@ -226,6 +224,7 @@ export default function SpacePage() {
           </div>
         </section>
       </div>
+      <MusicPlayer />
     </main>
   );
 }

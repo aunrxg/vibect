@@ -29,7 +29,7 @@ const playbackRoutes: FastifyPluginAsync = async (fastify) => {
 
   // start playback
   fastify.post(
-    "/post",
+    "/play",
     {
       preHandler: [authenticateOrAnonymous],
     },

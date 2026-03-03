@@ -47,14 +47,27 @@ export class PlaybackService {
     );
   }
 
-  async getPlaybackState(spaceId: string): Promise<PlaybackState | null> {
+  async getPlaybackState(spaceId: string): Promise<any | null> {
     try {
       const cached = await this.app.redis.get(CACHE_KEYS.PLAYBACK(spaceId));
       if (cached) {
-        return JSON.parse(cached);
+        const state = JSON.parse(cached);
+        if (state.currentSongId) {
+          const song = await this.app.prisma.songs.findUnique({
+            where: { id: state.currentSongId },
+            include: {
+              addedBy: {
+                select: { id: true, name: true, avatarUrl: true },
+              },
+              votes: true,
+            },
+          });
+          return { ...state, song };
+        }
+        return state;
       }
     } catch (error) {
-      console.error("Could not get redis data: ", error);
+      this.app.log.error({ error }, "Error getting playback state");
     }
 
     return null;

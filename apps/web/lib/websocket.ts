@@ -295,6 +295,10 @@ class WebSocketClient {
     queryClient.invalidateQueries({
       queryKey: ["queue", data.spaceId, identityKey],
     });
+
+    queryClient.invalidateQueries({
+      queryKey: ["playback", data.spaceId, identityKey],
+    });
   }
 
   private handleUserJoined(data: {
