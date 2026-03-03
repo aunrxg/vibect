@@ -1,5 +1,6 @@
 import { queryClient } from "./queryClient";
 import { ConnectionState } from "./types";
+import { useAuthStore } from "@/store/use-auth-store";
 
 export enum WSEvents {
   // Client -> Server
@@ -56,8 +57,6 @@ class WebSocketClient {
       "ws://localhost:4000/ws",
   ) {}
 
-  // connect to socket server
-
   connect(token?: string): Promise<void> {
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.log("Already connected!");
@@ -81,7 +80,6 @@ class WebSocketClient {
           console.log("Websocket connected!");
           this.connectionState = "connected";
           this.reconnectAttempts = 0;
-          // this.setupEventListeners();
           this.startPingInterval();
           this.flushMessageQueue();
           this.emit("connect");
@@ -100,7 +98,6 @@ class WebSocketClient {
           this.cleanup();
           this.emit("disconnect");
 
-          // auto reconnect if not a normal closure
           if (
             event.code !== 1000 &&
             this.reconnectAttempts < this.maxReconnectAttempts
@@ -147,7 +144,6 @@ class WebSocketClient {
       return;
     }
 
-    // leave current space if different
     if (this.currentSpaceId && this.currentSpaceId !== spaceId) {
       this.leaveSpace();
     }
@@ -177,7 +173,6 @@ class WebSocketClient {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {
-      // queue message if not connected
       console.log("Queuing message", type);
       this.messageQueue.push(message);
     }
@@ -203,40 +198,31 @@ class WebSocketClient {
         case WSEvents.QUEUE_UPDATED:
           this.handleQueueUpdated(payload);
           break;
-
         case WSEvents.SONG_ADDED:
           this.handleSongAdded(payload);
           break;
-
         case WSEvents.SONG_VOTED:
           this.handleSongVote(payload);
           break;
-
         case WSEvents.PLAYBACK_UPDATED:
           this.handlePlaybackUpdate(payload);
           break;
-
         case WSEvents.USER_JOINED:
           this.handleUserJoined(payload);
           break;
-
         case WSEvents.SPACE_STATE:
           this.handleSpaceState(payload);
           break;
-
         case WSEvents.TIME_SYNC_RESPONSE:
           this.handleTimeSyncResponse(payload);
           break;
-
         case WSEvents.PONG:
-          console.log("Pong Recieved");
+          console.log("Pong Received");
           break;
-
         case WSEvents.ERROR:
           console.error("Server error: ", payload);
           this.emit("error", payload);
           break;
-
         default:
           console.warn(`Unknown event type: ${type}`);
       }
@@ -249,88 +235,99 @@ class WebSocketClient {
 
   private handleQueueUpdated(data: { queue: any[] }) {
     if (!this.currentSpaceId) return;
-
+    const identityKey = useAuthStore.getState().identityKey();
     console.log("Queue updated: ", data.queue.length, "songs");
-    queryClient.setQueryData(["queue", this.currentSpaceId], data.queue);
+    queryClient.invalidateQueries({
+      queryKey: ["queue", this.currentSpaceId, identityKey],
+    });
   }
 
   private handleSongAdded(data: any) {
     if (!this.currentSpaceId) return;
-
+    const identityKey = useAuthStore.getState().identityKey();
     console.log("Song added: ", data.song?.title);
-    queryClient.invalidateQueries({ queryKey: ["queue", this.currentSpaceId] });
+    queryClient.invalidateQueries({
+      queryKey: ["queue", this.currentSpaceId, identityKey],
+    });
   }
 
   private handleSongVote(data: any) {
     if (!this.currentSpaceId) return;
-
+    const identityKey = useAuthStore.getState().identityKey();
     console.log("Song voted: ", data.songId);
 
-    // optimistic update the queue
     queryClient.setQueryData(
-      ["queue", this.currentSpaceId],
-      (oldQueue: any[] = []) => {
-        return oldQueue
-          .map((song) =>
-            song.id === data.songId
-              ? { ...song, voteCount: data.voteCount || song.voteCount }
-              : song,
-          )
-          .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
+      ["queue", this.currentSpaceId, identityKey],
+      (oldQueue: any) => {
+        if (!oldQueue) return oldQueue;
+        return {
+          ...oldQueue,
+          songs: (oldQueue.songs || [])
+            .map((song: any) =>
+              song.id === data.songId
+                ? { ...song, voteCount: data.voteCount || song.voteCount }
+                : song,
+            )
+            .sort((a: any, b: any) => (b.voteCount || 0) - (a.voteCount || 0)),
+        };
       },
     );
   }
 
   private handlePlaybackUpdate(data: PlaybackState) {
+    const identityKey = useAuthStore.getState().identityKey();
     console.log("Playback updated:", data);
-
     if (!data.spaceId) return;
 
-    // update current song query
-    queryClient.setQueryData(["currentSong", data.spaceId], {
+    queryClient.setQueryData(["currentSong", data.spaceId, identityKey], {
       songId: data.currentSongId,
       startedAt: data.startedAt,
       isPaused: data.isPaused,
       playbackRate: data.playbackRate,
     });
 
-    // reflect changes
-    queryClient.invalidateQueries({ queryKey: ["queue", data.spaceId] });
+    queryClient.invalidateQueries({
+      queryKey: ["queue", data.spaceId, identityKey],
+    });
   }
 
   private handleUserJoined(data: {
     clientId: string;
     userId?: string;
-    memeberCount: number;
+    memberCount: number;
   }) {
     if (!this.currentSpaceId) return;
-
+    const identityKey = useAuthStore.getState().identityKey();
     console.log(
       "User Joined: ",
       data.userId || data.clientId,
       "- Total: ",
-      data.memeberCount,
+      data.memberCount,
     );
 
-    // update space data with new member count
     queryClient.setQueryData(
-      ["spaces", this.currentSpaceId],
+      ["spaces", this.currentSpaceId, identityKey],
       (oldSpace: any) =>
-        oldSpace ? { ...oldSpace, memberCount: data.memeberCount } : oldSpace,
+        oldSpace ? { ...oldSpace, memberCount: data.memberCount } : oldSpace,
     );
 
     this.emit("user:joined", data);
   }
 
   private handleSpaceState(data: any) {
+    const identityKey = useAuthStore.getState().identityKey();
     console.log("space state: ", data);
 
     if (data.spaceId) {
-      // init state when joining a space
-      queryClient.setQueryData(["queue", data.spaceId], data.queue);
+      queryClient.invalidateQueries({
+        queryKey: ["queue", data.spaceId, identityKey],
+      });
     }
     if (data.playback) {
-      queryClient.setQueryData(["currentsong", data.spaceId], data.playback);
+      queryClient.setQueryData(
+        ["currentSong", data.spaceId, identityKey],
+        data.playback,
+      );
     }
   }
 
@@ -383,14 +380,12 @@ class WebSocketClient {
     }, delay);
   }
 
-  // request time sync
   requestTimeSync() {
     this.send(WSEvents.TIME_SYNC, {
       clientTimeStamp: Date.now(),
     });
   }
 
-  // emitter methods
   on(event: string, callback: Function) {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
@@ -406,7 +401,6 @@ class WebSocketClient {
     this.eventListeners.get(event)?.forEach((callback) => callback(data));
   }
 
-  // getter functions
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
   }

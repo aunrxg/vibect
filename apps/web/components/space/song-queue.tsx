@@ -126,7 +126,7 @@ export default function SongQueue({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#030303] text-white overflow-hidden">
+    <div className="flex flex-col h-full text-white overflow-hidden">
       {/* Search Bar Section */}
       <div className="px-6 py-4 border-b border-white/10 space-y-4">
         <div className="relative group">
@@ -152,80 +152,82 @@ export default function SongQueue({
               <X className="h-4 w-4 text-slate-400" />
             </button>
           )}
-        </div>
 
-        {/* Search Results Overlay-like Section */}
-        {showResults && searchQuery && (
-          <div className="absolute left-0 right-0 top-[140px] bottom-0 z-50 bg-[#030303] overflow-y-auto px-6 pb-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4 mt-2">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Search Results
-              </h4>
-              <button
-                onClick={() => setShowResults(false)}
-                className="text-xs text-slate-400 hover:text-white"
-              >
-                Close
-              </button>
+          {/* Search Results Dropdown */}
+          {showResults && searchQuery && (
+            <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden max-h-[480px] flex flex-col">
+              <div className="sticky top-0 bg-[#0a0a0a] px-4 py-3 border-b border-white/5 flex items-center justify-between z-10">
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Search Results
+                </h4>
+                <button
+                  onClick={() => setShowResults(false)}
+                  className="text-[10px] text-slate-500 hover:text-white transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="overflow-y-auto px-2 pb-2 custom-scrollbar">
+                {isSearching ? (
+                  <div className="flex flex-col gap-1 p-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex gap-4 items-center animate-pulse p-2"
+                      >
+                        <div className="w-12 h-9 bg-white/5 rounded" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-2 bg-white/5 rounded w-3/4" />
+                          <div className="h-2 bg-white/5 rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : searchResults && searchResults.length > 0 ? (
+                  <div className="py-1">
+                    {searchResults.map((result) => (
+                      <div
+                        key={result.id}
+                        className="group flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                        onClick={() => handleAddFromSearch(result)}
+                      >
+                        <div className="relative shrink-0">
+                          <Image
+                            src={result.thumbnail || "/placeholder.svg"}
+                            alt={result.title}
+                            width={48}
+                            height={36}
+                            className="w-12 h-9 object-cover rounded shadow-sm"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-xs truncate">
+                            {result.title}
+                          </h4>
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                            {result.channelTitle}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-slate-500 hover:text-white hover:bg-white/10"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 text-xs">
+                    No results found for "{searchQuery}"
+                  </div>
+                )}
+              </div>
             </div>
-
-            {isSearching ? (
-              <div className="flex flex-col gap-4">
-                {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex gap-4 items-center animate-pulse"
-                  >
-                    <div className="w-14 h-10 bg-white/5 rounded" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-white/5 rounded w-3/4" />
-                      <div className="h-2 bg-white/5 rounded w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : searchResults && searchResults.length > 0 ? (
-              <div className="space-y-2">
-                {searchResults.map((result) => (
-                  <div
-                    key={result.id}
-                    className="group flex items-center gap-4 p-2 -mx-2 hover:bg-white/5 rounded-lg transition-colors border-b border-white/5 last:border-0"
-                  >
-                    <div className="relative shrink-0">
-                      <Image
-                        src={result.thumbnail || "/placeholder.svg"}
-                        alt={result.title}
-                        width={56}
-                        height={42}
-                        className="w-14 h-10 object-cover rounded shadow-md"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
-                        {result.title}
-                      </h4>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {result.channelTitle}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/10"
-                      onClick={() => handleAddFromSearch(result)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-slate-400">
-                No results found for "{searchQuery}"
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <ScrollArea className="flex-1">
         <div className="px-6 py-6 space-y-8">

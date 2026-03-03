@@ -91,7 +91,7 @@ export default function SpacePage() {
     {
       name: "Queue",
       value: "queue",
-      count: queue?.meta.total,
+      count: queue?.meta?.total || 0,
       content: (
         <SongQueue
           queueSongs={queue?.songs}
@@ -116,8 +116,8 @@ export default function SpacePage() {
     },
   ];
   return (
-    <main className="h-screen w-full bg-[#030303] text-white">
-      <header className="border-b border-white/10 backdrop-blur-sm sticky top-0 z-50 bg-[#030303]/80">
+    <main className="h-screen w-full text-white">
+      <header className="border-b border-white/10 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
