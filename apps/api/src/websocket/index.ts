@@ -99,7 +99,26 @@ function cleanupSocket(
   manager: ConnectionManager,
 ) {
   clearInterval(headbeat);
+
+  const spaceId = socket.spaceId;
   manager.removeConnection(socket);
+
+  if (spaceId) {
+    const members = manager.getSpaceMembers(spaceId);
+    manager.broadcastToSpace(
+      spaceId,
+      JSON.stringify({
+        type: WSEvents.LEAVE_SPACE,
+        data: {
+          clientId: socket.clientId,
+          userId: socket.userId,
+          memberCount: members.length,
+          members: members,
+        },
+      }),
+    );
+  }
+
   app.log.info(`WS disconnected: ${socket.clientId}`);
 }
 

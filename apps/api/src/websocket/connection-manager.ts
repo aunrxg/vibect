@@ -89,6 +89,28 @@ export class ConnectionManager {
     return this.getSpaceConnections(spaceId).size;
   }
 
+  getSpaceMembers(spaceId: string) {
+    const connections = this.getSpaceConnections(spaceId);
+    const members: any[] = [];
+    const seenUsers = new Set<string>();
+
+    connections.forEach((socket) => {
+      const id = socket.userId || socket.clientId;
+      if (!seenUsers.has(id)) {
+        members.push({
+          id,
+          name: socket.name || "Guest",
+          avatarUrl: socket.avatarUrl,
+          isAnonymous: socket.isAnonymous ?? true,
+          isOwner: false, // will be set in handler/frontend
+        });
+        seenUsers.add(id);
+      }
+    });
+
+    return members;
+  }
+
   getActivespaces(): string[] {
     return Array.from(this.spaceConnections.keys());
   }

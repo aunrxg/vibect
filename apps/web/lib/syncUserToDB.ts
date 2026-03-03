@@ -11,6 +11,7 @@ export async function syncUserToDB(user: User) {
     created_at: user.created_at,
     updated_at: user.updated_at,
   };
+  console.log("user sync started: ", payload);
 
   const { error } = await supabase
     .from("users")

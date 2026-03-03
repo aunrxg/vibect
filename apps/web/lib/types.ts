@@ -8,6 +8,7 @@ export interface Space {
   updatedAt: string;
   currentSongId?: string;
   memberCount?: number;
+  members?: any[];
 }
 
 export interface Song {

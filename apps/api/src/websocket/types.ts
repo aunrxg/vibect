@@ -5,6 +5,9 @@ export interface AuthenticatedWebSocket extends WebSocket {
   spaceId?: string;
   clientId: string;
   isAlive: boolean;
+  name?: string;
+  avatarUrl?: string;
+  isAnonymous?: boolean;
 }
 
 // export interface WSMessage {
@@ -62,6 +65,7 @@ export interface ServerToClientEvents {
     clientId: string;
     userId?: string;
     memberCount: number;
+    members: any[];
   };
   [WSEvents.TIME_SYNC_RESPONSE]: {
     clientTimestamp: number;

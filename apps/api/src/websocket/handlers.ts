@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest } from "fastify";
+import { jwtVerify } from "jose";
 import { ConnectionManager } from "./connection-manager";
 import {
   AuthenticatedWebSocket,
@@ -8,6 +9,7 @@ import {
 } from "./types";
 import { CACHE_KEYS } from "../config/constants";
 import { NTPService } from "../modules/playback/ntp.service";
+import { config } from "../config";
 
 export class WebSocketHandlers {
   constructor(
@@ -33,16 +35,46 @@ export class WebSocketHandlers {
 
       // authenticate user from token
       if (token) {
-        try {
-          const {
-            data: { user },
-          } = await this.app.supabase.auth.getUser(token);
-          if (user) {
-            socket.userId = user.id;
+        if (token.startsWith("anon_")) {
+          socket.isAnonymous = true;
+        } else {
+          try {
+            const secret = new TextEncoder().encode(config.supabase.jwtSecret);
+            const { payload } = await jwtVerify(token, secret);
+            const userId = payload.sub as string;
+
+            if (userId) {
+              const dbUser = await this.app.prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                  id: true,
+                  name: true,
+                  avatarUrl: true,
+                  email: true,
+                },
+              });
+
+              if (dbUser) {
+                socket.userId = dbUser.id;
+                socket.name =
+                  dbUser.name || dbUser.email.split("@")[0] || "Viber";
+                socket.avatarUrl = dbUser.avatarUrl || undefined;
+                socket.isAnonymous = false;
+                this.app.log.info(
+                  { userId: dbUser.id, name: socket.name },
+                  "Websocket user authenticated via JWT",
+                );
+              }
+            }
+          } catch (error) {
+            this.app.log.warn({ error }, "Failed to verify JWT for websocket");
           }
-        } catch (error) {
-          this.app.log.warn({ error }, "Failed to authenticate websocket user"); // anon user
         }
+      }
+
+      if (!socket.userId) {
+        socket.isAnonymous = true;
+        socket.name = `Guest ${socket.clientId.slice(0, 4)}`;
       }
 
       // add to space
@@ -99,7 +131,8 @@ export class WebSocketHandlers {
         queue: songsWithScores,
       });
 
-      // notify others in space
+      // notify everyone in space (including joining user)
+      const members = this.connectionManager.getSpaceMembers(spaceId);
       this.connectionManager.broadcastToSpace(
         spaceId,
         JSON.stringify({
@@ -107,10 +140,10 @@ export class WebSocketHandlers {
           data: {
             clientId: socket.clientId,
             userId: socket.userId,
-            memberCount: this.connectionManager.getSpaceMemberCount(spaceId),
+            memberCount: members.length,
+            members: members,
           },
         }),
-        socket,
       );
 
       this.app.log.info(`Client ${socket.clientId} joined space ${spaceId}`);
@@ -131,7 +164,7 @@ export class WebSocketHandlers {
 
     // leave
     this.connectionManager.removeFromSpace(spaceId, socket);
-    const count = this.connectionManager.getSpaceMemberCount(spaceId);
+    const members = this.connectionManager.getSpaceMembers(spaceId);
 
     // notify other socket
     this.connectionManager.broadcastToSpace(
@@ -141,7 +174,8 @@ export class WebSocketHandlers {
         data: {
           clientId: socket.clientId,
           userId: socket.userId,
-          memberCount: count,
+          memberCount: members.length,
+          members: members,
         },
       }),
       socket,

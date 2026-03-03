@@ -59,8 +59,13 @@ class WebSocketClient {
 
   connect(token?: string): Promise<void> {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log("Already connected!");
-      return Promise.resolve();
+      if (token !== this.token) {
+        console.log("Token changed, reconnecting...");
+        this.disconnect();
+      } else {
+        console.log("Already connected!");
+        return Promise.resolve();
+      }
     }
 
     if (this.connectionState === "connecting") {
@@ -208,6 +213,7 @@ class WebSocketClient {
           this.handlePlaybackUpdate(payload);
           break;
         case WSEvents.USER_JOINED:
+        case WSEvents.LEAVE_SPACE:
           this.handleUserJoined(payload);
           break;
         case WSEvents.SPACE_STATE:
@@ -295,11 +301,12 @@ class WebSocketClient {
     clientId: string;
     userId?: string;
     memberCount: number;
+    members: any[];
   }) {
     if (!this.currentSpaceId) return;
     const identityKey = useAuthStore.getState().identityKey();
     console.log(
-      "User Joined: ",
+      "User Joined/Left: ",
       data.userId || data.clientId,
       "- Total: ",
       data.memberCount,
@@ -308,7 +315,13 @@ class WebSocketClient {
     queryClient.setQueryData(
       ["spaces", this.currentSpaceId, identityKey],
       (oldSpace: any) =>
-        oldSpace ? { ...oldSpace, memberCount: data.memberCount } : oldSpace,
+        oldSpace
+          ? {
+              ...oldSpace,
+              memberCount: data.memberCount,
+              members: data.members,
+            }
+          : oldSpace,
     );
 
     this.emit("user:joined", data);

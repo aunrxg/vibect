@@ -89,7 +89,7 @@ export default function SpacePage() {
 
   const tabs = [
     {
-      name: "Queue",
+      name: "UP NEXT",
       value: "queue",
       count: queue?.meta?.total || 0,
       content: (
@@ -102,12 +102,12 @@ export default function SpacePage() {
         />
       ),
     },
-    // {
-    //   name: "People",
-    //   value: "people",
-    //   count: 5,
-    //   content: <UserPresence creator={space.ownerId} />,
-    // },
+    {
+      name: "People",
+      value: "people",
+      count: space.memberCount || 0,
+      content: <UserPresence creator={space.ownerId} />,
+    },
     {
       name: "Chat",
       value: "chat",
