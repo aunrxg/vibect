@@ -11,6 +11,7 @@ import {
   ChevronUp,
   User,
   Heart,
+  SkipBack,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
@@ -91,9 +92,9 @@ export default function MusicPlayer() {
               variant="ghost"
               size="icon"
               className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10"
-              onClick={() => next()}
+              onClick={() => {}}
             >
-              <SkipForward className="h-5 w-5" />
+              <SkipBack className="h-5 w-5" />
             </Button>
             <Button
               onClick={handleTogglePlay}
@@ -109,10 +110,18 @@ export default function MusicPlayer() {
               variant="ghost"
               size="icon"
               className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10"
+              onClick={() => next()}
+            >
+              <SkipForward className="h-5 w-5" />
+            </Button>
+            {/* <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 text-slate-400 hover:text-white hover:bg-white/10"
               onClick={() => {}}
             >
               <ChevronUp className="h-5 w-5" />
-            </Button>
+            </Button> */}
           </div>
 
           {/* Progress Bar */}

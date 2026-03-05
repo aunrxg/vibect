@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Music, Share2 } from "lucide-react";
+import DraggableCard from "@/components/space/draggable-card";
 // zustand state stores
 import { useAuthStore } from "@/store/use-auth-store";
 import { useSpaceStore } from "@/store/use-space-store";
@@ -159,27 +160,29 @@ export default function SpacePage() {
                 key={spaceId}
                 connectionState={connectionState}
               />
-              <Badge variant={id === space.ownerId ? "default" : "secondary"}>
-                {id === space.ownerId ? "Creator" : "Viewer"}
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShareLink}
-                className="flex items-center gap-2 bg-transparent"
-              >
-                {linkCopied ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="h-4 w-4" />
-                    Share Link
-                  </>
-                )}
-              </Button>
+              <div className="hidden sm:flex items-center gap-3">
+                <Badge variant={id === space.ownerId ? "default" : "secondary"}>
+                  {id === space.ownerId ? "Creator" : "Viewer"}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShareLink}
+                  className="flex items-center gap-2 bg-transparent"
+                >
+                  {linkCopied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-4 w-4" />
+                      Share Link
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -194,19 +197,22 @@ export default function SpacePage() {
           </div>
         </div>
       </header>
-      <div className="flex flex-1 flex-col md:flex-row min-h-0 relative pb-28 sm:pb-24">
-        <section className="h-full w-full md:w-3/5 overflow-hidden border-r border-white/5">
+      <div className="flex flex-1 flex-col md:flex-row min-h-0 relative">
+        {/* Main Content Area: NowPlaying takes full space on mobile */}
+        <section className="flex-1 h-[calc(100vh-90px)] overflow-hidden">
           <NowPlaying />
         </section>
-        <section className="h-full w-full md:w-2/5">
-          <div className="w-full h-full flex flex-col gap-6 items-center">
-            <Tabs defaultValue="queue" className="w-full gap-4">
-              <TabsList className="w-full">
+
+        {/* Desktop Sidebar */}
+        <section className="hidden md:flex h-full w-[400px] border-l border-white/5 flex-col">
+          <div className="p-6 h-full">
+            <Tabs defaultValue="queue" className="h-full flex flex-col">
+              <TabsList className="w-full mb-6">
                 {tabs.map((tab) => (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="flex items-center gap-1 px-2.5 sm:px-3"
+                    className="flex-1 flex items-center gap-2"
                   >
                     {tab.name}
                     <Badge className="h-5 min-w-5 px-1 tabular-nums">
@@ -215,16 +221,51 @@ export default function SpacePage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
+              <div className="flex-1 overflow-hidden">
+                {tabs.map((tab) => (
+                  <TabsContent
+                    key={tab.value}
+                    value={tab.value}
+                    className="h-full mt-0"
+                  >
+                    <div className="h-full overflow-y-auto">{tab.content}</div>
+                  </TabsContent>
+                ))}
+              </div>
+            </Tabs>
+          </div>
+        </section>
+
+        {/* Mobile Draggable Card */}
+        <div className="md:hidden">
+          <DraggableCard isOpen={true}>
+            <Tabs defaultValue="queue" className="w-full">
+              <TabsList className="w-full mb-6 flex justify-around bg-transparent border-0 h-auto p-0">
+                {tabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex flex-col items-center gap-1 data-[state=active]:bg-transparent data-[state=active]:text-white text-slate-500 uppercase text-[10px] font-bold tracking-widest px-0"
+                  >
+                    {tab.name}
+                    <div className="h-1 w-8 rounded-full bg-indigo-500 scale-0 data-[state=active]:scale-100 transition-transform mt-1" />
+                  </TabsTrigger>
+                ))}
+              </TabsList>
               {tabs.map((tab) => (
-                <TabsContent key={tab.value} value={tab.value}>
+                <TabsContent key={tab.value} value={tab.value} className="mt-0">
                   {tab.content}
                 </TabsContent>
               ))}
             </Tabs>
-          </div>
-        </section>
+          </DraggableCard>
+        </div>
       </div>
-      <MusicPlayer />
+
+      {/* Desktop Music Player Bar */}
+      <div className="hidden md:block">
+        <MusicPlayer />
+      </div>
     </main>
   );
 }
