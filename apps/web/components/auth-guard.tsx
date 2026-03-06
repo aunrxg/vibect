@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Music } from "lucide-react";
 import { useAuthStore } from "@/store/use-auth-store";
+import { HomeSkeleton } from "./loading-skeletons";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -25,16 +26,7 @@ export function AuthGuard({ children, redirectTo = "/auth" }: AuthGuardProps) {
   }, [isAuth, loading, router, redirectTo]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-secondary flex items-center justify-center">
-        <Card className="bg-background border-secondary p-8">
-          <CardContent className="flex flex-col items-center gap-4">
-            <Music className="h-8 w-8 text-primary animate-pulse" />
-            <p className="text-secondary">Loading...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <HomeSkeleton />;
   }
 
   if (!isAuth) {

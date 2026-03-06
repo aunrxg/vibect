@@ -6,11 +6,13 @@ import { ReactNode, useEffect } from "react";
 import { queryClient } from "./queryClient";
 import { useAuthInitialization } from "@/hooks/use-auth";
 
+import { HomeSkeleton } from "@/components/loading-skeletons";
+
 export function Provider({ children }: { children: ReactNode }) {
   const { isInitialized } = useAuthInitialization();
 
   if (!isInitialized) {
-    return <div>Loading...</div>;
+    return <HomeSkeleton />;
   }
 
   return (

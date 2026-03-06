@@ -8,7 +8,13 @@ export interface Space {
   updatedAt: string;
   currentSongId?: string;
   memberCount?: number;
+  inviteCode?: string;
   members?: any[];
+  owner: {
+    name: string;
+    avatarUrl?: string;
+    email: string;
+  };
 }
 
 export interface Song {

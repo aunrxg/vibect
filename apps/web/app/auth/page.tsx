@@ -46,7 +46,6 @@ export default function AuthPage() {
     router.push("/");
   };
 
-  if (loading) return <h1>Loading...</h1>;
   return (
     <main className="bg-background flex min-h-screen w-full flex-col items-center justify-center sm:px-4">
       <div className="w-full space-y-4 sm:max-w-md">
