@@ -43,12 +43,12 @@ export default function NowPlaying() {
   }
 
   return (
-    <div className="relative flex flex-col items-center h-full w-full bg-black p-6 overflow-y-auto">
+    <div className="relative flex flex-col items-center justify-center h-full w-full bg-black p-6 overflow-hidden">
       <YoutubePlayer />
 
       {/* Dynamic Background Glow */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-indigo-600/10 blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-white/10 blur-[120px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
@@ -91,18 +91,18 @@ export default function NowPlaying() {
           </div>
 
           {/* Playback Controls */}
-          <div className="w-full flex items-center justify-between gap-4 max-w-sm mb-12">
+          <div className="w-full flex items-center justify-evenly max-w-sm mb-12">
             {/* Added By instead of Shuffle */}
             <div className="flex flex-col items-start min-w-0 max-w-[80px]">
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider truncate">
                 Added By
               </span>
-              <span className="text-xs font-medium text-indigo-400 truncate">
+              <span className="text-xs font-medium text-white truncate">
                 {currentSong.addedByUser?.name || "Anonymous"}
               </span>
             </div>
 
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-8 mx-auto">
               <button className="p-2 text-white hover:bg-white/10 rounded-full transition-colors">
                 <SkipBack className="h-8 w-8 fill-current" />
               </button>
@@ -124,7 +124,7 @@ export default function NowPlaying() {
             {/* Upvotes instead of Repeat */}
             <div className="flex flex-col items-end min-w-[60px]">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/5">
-                <Heart className="h-3.5 w-3.5 text-indigo-500 fill-indigo-500/10" />
+                <Heart className="h-3.5 w-3.5 text-primary fill-primary/10" />
                 <span className="text-xs font-semibold text-slate-300">
                   {currentSong.voteCount || 0}
                 </span>
@@ -133,11 +133,11 @@ export default function NowPlaying() {
           </div>
 
           {/* Mobile: Tabs Label Placeholder */}
-          <div className="w-full flex justify-between px-4 text-xs font-bold tracking-widest text-slate-500 uppercase">
+          {/* <div className="w-full flex justify-between px-4 text-xs font-bold tracking-widest text-slate-500 uppercase">
             <span>Up next</span>
             <span>Lyrics</span>
             <span>Related</span>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

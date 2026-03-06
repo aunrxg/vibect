@@ -10,8 +10,8 @@ import MusicPlayer from "@/components/space/music-player";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Music, Share2 } from "lucide-react";
 import DraggableCard from "@/components/space/draggable-card";
+import SpaceInfo from "@/components/space/space-info";
 // zustand state stores
 import { useAuthStore } from "@/store/use-auth-store";
 import { useSpaceStore } from "@/store/use-space-store";
@@ -24,12 +24,15 @@ import { useSpace } from "@/hooks/use-space";
 import { useSpaceWebSocket } from "@/hooks/use-space-ws";
 import { useQueue } from "@/hooks/use-song";
 
+import { SpaceSkeleton } from "@/components/loading-skeletons";
+
 export default function SpacePage() {
   const { id: spaceId } = useParams<{ id: string }>();
   const router = useRouter();
 
   // local state
   const [linkCopied, setLinkCopied] = useState(false);
+  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
 
   // zustand states
   const { identity } = useAuthStore();
@@ -53,15 +56,8 @@ export default function SpacePage() {
   }, [spaceId, setCurrentSpace]);
 
   // loading state
-  if (spaceLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-xl text-white">Loading space...</div>
-      </div>
-    );
-  }
-  if (queueLoading) {
-    return <h1>Queue Loading...</h1>;
+  if (spaceLoading || queueLoading) {
+    return <SpaceSkeleton />;
   }
   if (!space || spaceError) {
     return (
@@ -92,7 +88,7 @@ export default function SpacePage() {
 
   const tabs = [
     {
-      name: "UP NEXT",
+      name: "Up next",
       value: "queue",
       count: queue?.meta?.total || 0,
       content: (
@@ -112,94 +108,32 @@ export default function SpacePage() {
       content: <UserPresence creator={space.ownerId} />,
     },
     {
-      name: "Chat",
-      value: "chat",
-      count: 9,
-      content: <Chat />,
+      name: "Space",
+      value: "space",
+      count: 1,
+      content: (
+        <SpaceInfo
+          space={space}
+          connectionState={connectionState}
+          isOwner={id === space.ownerId}
+        />
+      ),
     },
   ];
   return (
-    <main className="h-screen w-full text-white">
-      <header className="border-b border-white/10 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              >
-                <Music className="h-8 w-8 text-white" />
-                <span className="text-lg font-bold">Vitect</span>
-              </Link>
-              <div className="hidden sm:block w-px h-6 bg-border" />
-              <div className="flex flex-col">
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-semibold leading-tight tracking-tight">
-                    {space.name}
-                  </h1>
-                  {space.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {space.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  <span className="text-xs text-slate-400 font-medium">
-                    {space.memberCount || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <ConnectionStatus
-                key={spaceId}
-                connectionState={connectionState}
-              />
-              <div className="hidden sm:flex items-center gap-3">
-                <Badge variant={id === space.ownerId ? "default" : "secondary"}>
-                  {id === space.ownerId ? "Creator" : "Viewer"}
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShareLink}
-                  className="flex items-center gap-2 bg-transparent"
-                >
-                  {linkCopied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="h-4 w-4" />
-                      Share Link
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile space info */}
-          <div className="sm:hidden mt-3 pt-3 border-t border-border">
-            <h1 className="text-lg font-semibold">{space.name}</h1>
-            {space.description && (
-              <p className="text-sm text-muted-foreground">
-                {space.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </header>
-      <div className="flex flex-1 flex-col md:flex-row min-h-0 relative">
+    <main className="h-screen w-full text-white bg-black">
+      <div className="flex flex-1 h-full flex-col md:flex-row min-h-0 relative">
         {/* Main Content Area: NowPlaying takes full space on mobile */}
-        <section className="flex-1 h-[calc(100vh-90px)] overflow-hidden">
+        <section className="flex-1 h-full overflow-hidden">
+          <div className="flex items-center gap-1.5 mt-0.5 justify-end px-5">
+            <span className="text-xs text-slate-400 font-medium">
+              {space.memberCount} listening now
+            </span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+          </div>
           <NowPlaying />
         </section>
 
@@ -215,9 +149,11 @@ export default function SpacePage() {
                     className="flex-1 flex items-center gap-2"
                   >
                     {tab.name}
-                    <Badge className="h-5 min-w-5 px-1 tabular-nums">
-                      {tab.count}
-                    </Badge>
+                    {tab.count > 0 && (
+                      <Badge className="h-5 min-w-5 px-1 tabular-nums">
+                        {tab.count}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -238,17 +174,17 @@ export default function SpacePage() {
 
         {/* Mobile Draggable Card */}
         <div className="md:hidden">
-          <DraggableCard isOpen={true}>
+          <DraggableCard isOpen={isSheetExpanded} onToggle={setIsSheetExpanded}>
             <Tabs defaultValue="queue" className="w-full">
-              <TabsList className="w-full mb-6 flex justify-around bg-transparent border-0 h-auto p-0">
+              <TabsList className="w-full mb-8 flex justify-around bg-transparent border-0 h-auto p-0 pt-2 px-2">
                 {tabs.map((tab) => (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="flex flex-col items-center gap-1 data-[state=active]:bg-transparent data-[state=active]:text-white text-slate-500 uppercase text-[10px] font-bold tracking-widest px-0"
+                    onClick={() => setIsSheetExpanded(true)}
+                    className="flex-1 flex flex-col items-center gap-1.5 data-[state=active]:bg-white/15 bg-white/5 rounded-2xl mx-1.5 py-3 data-[state=active]:text-white text-slate-300 capitalize text-[13px] font-semibold transition-all shadow-lg active:scale-95"
                   >
                     {tab.name}
-                    <div className="h-1 w-8 rounded-full bg-indigo-500 scale-0 data-[state=active]:scale-100 transition-transform mt-1" />
                   </TabsTrigger>
                 ))}
               </TabsList>
