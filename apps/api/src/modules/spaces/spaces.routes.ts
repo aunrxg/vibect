@@ -57,6 +57,24 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // get space by invite code
+  fastify.get(
+    "/code/:code",
+    {
+      preHandler: [authenticateOrAnonymous],
+    },
+    async (request, reply) => {
+      const { code } = request.params as { code: string };
+      const space = await spaceService.getSpaceByCode(code);
+      return sendSuccess(
+        reply,
+        space,
+        "successfully get the space by invite code",
+        HttpStatus.OK,
+      );
+    },
+  );
+
   // create space
   fastify.post(
     "/",

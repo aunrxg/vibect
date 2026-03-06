@@ -8,6 +8,7 @@ export const REDIS_CHANNELS = {
 // redis cache keys
 export const CACHE_KEYS = {
   SPACE: (id: string) => `space:${id}`,
+  INVITE_CODE: (code: string) => `invite:${code}`,
   QUEUE: (spaceId: string) => `queue:${spaceId}`,
   PLAYBACK: (spaceId: string) => `playback:${spaceId}`,
   USER: (id: string) => `user:${id}`,

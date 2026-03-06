@@ -86,6 +86,50 @@ export class SpaceService {
     return space;
   }
 
+  async getSpaceByCode(inviteCode: string) {
+    // Check if we have the mapping from code to ID in cache
+    const cachedId = await this.app.redis.get(
+      CACHE_KEYS.INVITE_CODE(inviteCode),
+    );
+
+    if (cachedId) {
+      return this.getSpace({ id: cachedId });
+    }
+
+    // Lookup in DB
+    const space = await this.app.prisma.space.findUnique({
+      where: { inviteCode },
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true },
+        },
+        _count: {
+          select: { songs: true, memberships: true },
+        },
+      },
+    });
+
+    if (!space) {
+      throw new NotFoundError("Space not found with this invite code");
+    }
+
+    // Cache the mapping from code to ID
+    await this.app.redis.setex(
+      CACHE_KEYS.INVITE_CODE(inviteCode),
+      CACHE_TTL.LONG,
+      space.id,
+    );
+
+    // Also cache the space details (just in case they weren't in cache)
+    await this.app.redis.setex(
+      CACHE_KEYS.SPACE(space.id),
+      CACHE_TTL.LONG,
+      JSON.stringify(space),
+    );
+
+    return space;
+  }
+
   async listPublicSpaces({
     page = 1,
     limit = 20,
