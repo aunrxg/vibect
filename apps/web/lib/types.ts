@@ -31,6 +31,7 @@ export interface Song {
   position: number;
   userVote?: -1 | 0 | 1; // Current user's vote
   artist?: string;
+  score?: number;
   addedByUser?: {
     id: string;
     name: string;
@@ -96,6 +97,8 @@ type AnonymousUser = {
   id: string; // anon_XXX
   name: string; // generate random names one piece edition
   isAnonymous: true;
+  email?: string;
+  avatarUrl?: string;
 };
 
 type AuthenticatedUser = {

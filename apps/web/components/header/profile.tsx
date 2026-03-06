@@ -9,12 +9,9 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { SidebarMenuButton, useSidebar } from "../ui/sidebar";
-import { ChevronDown } from "lucide-react";
 
 export default function Profile({
   user,
@@ -25,58 +22,67 @@ export default function Profile({
     avatar: string;
   };
 }) {
-  const { isMobile } = useSidebar();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SidebarMenuButton
-          size="default"
-          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-        >
-          <Avatar className="h-10 w-10 rounded-full grayscale">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+        <button className="relative group focus:outline-none shrink-0">
+          <div className="absolute -inset-1 bg-linear-to-r from-indigo-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-20 blur transition duration-300" />
+          <Avatar className="h-10 w-10 border border-white/10 group-hover:border-indigo-500/50 transition-colors duration-300 ring-0 ring-white/0 group-hover:ring-4 group-hover:ring-indigo-500/10">
+            <AvatarImage
+              src={user.avatar}
+              alt={user.name}
+              className="object-cover"
+            />
+            <AvatarFallback className="bg-indigo-500 text-white font-bold">
+              {user.name.charAt(0)}
+            </AvatarFallback>
           </Avatar>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium">{user.name}</span>
-          </div>
-          <ChevronDown className="ml-auto size-4" />
-        </SidebarMenuButton>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-        side={isMobile ? "bottom" : "right"}
+        className="w-64 mt-2 bg-black/90 backdrop-blur-xl border-white/5 text-slate-300 rounded-2xl p-2 shadow-2xl"
         align="end"
-        sideOffset={4}
       >
-        <DropdownMenuLabel className="p-0 font-normal">
-          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+        <div className="px-3 py-4 mb-1">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-11 w-11 border border-white/10">
+              <AvatarImage
+                src={user.avatar}
+                alt={user.name}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-indigo-500 text-white font-bold">
+                {user.name.charAt(0)}
+              </AvatarFallback>
             </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{user.name}</span>
-              <span className="text-muted-foreground truncate text-xs">
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-white truncate">
+                {user.name}
+              </span>
+              <span className="text-[11px] text-slate-500 truncate">
                 {user.email}
               </span>
             </div>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <IconUserCircle />
-            Profile
+        </div>
+
+        <DropdownMenuSeparator className="bg-white/5 mx-2" />
+
+        <DropdownMenuGroup className="py-1">
+          <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 hover:text-white transition-all text-sm font-medium focus:bg-white/5 focus:text-white">
+            <IconUserCircle className="h-5 w-5 text-indigo-400" />
+            Profile Settings
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <IconCreditCard />
-            Upgrade
+          <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 hover:text-white transition-all text-sm font-medium focus:bg-white/5 focus:text-white">
+            <IconCreditCard className="h-5 w-5 text-purple-400" />
+            Subscription
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <IconLogout />
+
+        <DropdownMenuSeparator className="bg-white/5 mx-2" />
+
+        <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/10 text-red-400 transition-all text-sm font-medium mt-1 focus:bg-red-500/10 focus:text-red-400">
+          <IconLogout className="h-5 w-5" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

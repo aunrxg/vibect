@@ -30,7 +30,7 @@ export const useHistory = (
 
   return useQuery({
     queryKey: ["history", spaceId, identityKey, limit],
-    queryFn: async (): Promise<Song[]> => {
+    queryFn: async (): Promise<Queue> => {
       const res = await api.get(`/songs/history/${spaceId}`, {
         params: { page, limit },
       });
