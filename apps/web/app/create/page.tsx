@@ -1,36 +1,31 @@
 "use client";
 
+import { HomeHeader } from "@/components/home/home-header";
+import { MoveLeft, Sparkles, Globe, Lock, Share2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import { toast } from "sonner";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateSpace } from "@/hooks/use-space";
 import { useAuthStore } from "@/store/use-auth-store";
-import { ArrowLeft, Music } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { toast } from "sonner";
 
 export default function CreateSpacePage() {
   const router = useRouter();
   const [spaceName, setSpaceName] = useState("");
   const [description, setDescription] = useState("");
-  const [isPulic, setIsPublic] = useState(true);
+  const [isPublic, setIsPublic] = useState(true);
 
-  const { isAuthenticated } = useAuthStore();
-  const isAuth = isAuthenticated();
+  const { session, identity } = useAuthStore();
+  const isAuthenticated = !!session && !identity?.isAnonymous;
 
-  const { mutate: createSpace, isPending, error } = useCreateSpace();
+  const { mutate: createSpace, isPending } = useCreateSpace();
 
   const handleCreateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,15 +34,18 @@ export default function CreateSpacePage() {
       return;
     }
     createSpace(
-      { name: spaceName, isPublic: isPulic, description },
+      { name: spaceName, isPublic, description },
       {
         onSuccess: (newSpace) => {
-          console.log("space created: ", newSpace);
+          toast.success("Space created successfully!");
           router.push(`/spaces/${newSpace.id}`);
         },
-        onError: (err) => {
+        onError: (err: any) => {
           console.error("Failed to create space: ", err);
-          toast.error("Failed to create space. Please try again.");
+          toast.error(
+            err.response?.data?.message ||
+              "Failed to create space. Please try again.",
+          );
         },
       },
     );
@@ -55,113 +53,151 @@ export default function CreateSpacePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen">
-        {/* Header */}
-        <header className="border-b border-border">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <Link
-              href="/"
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col text-slate-200">
+        <HomeHeader />
+
+        <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+          {/* Background Decor */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] -z-10 animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] -z-10 animate-pulse delay-700" />
+
+          <div className="w-full max-w-xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
             >
-              <ArrowLeft className="h-5 w-5" />
-              <Music className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold">MusicSpace</h1>
-            </Link>
-          </div>
-        </header>
+              <Button
+                variant="ghost"
+                onClick={() => router.back()}
+                className="text-slate-400 hover:text-white mb-6 -ml-4 group px-4 bg-transparent hover:bg-white/5"
+              >
+                <MoveLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                Back to Dashboard
+              </Button>
 
-        {/* Create Space Form */}
-        <section className="container mx-auto px-4 py-12">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4">
-                Create Your Music Space
-              </h2>
-              <p className="text-muted-foreground text-lg">
-                Set up a collaborative music space where your community can add
-                and vote on songs
+              <div className="flex items-center gap-4 mb-2">
+                <div className="h-12 w-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 text-indigo-400" />
+                </div>
+                <h1 className="text-3xl font-black tracking-tight text-white">
+                  Create a Space
+                </h1>
+              </div>
+              <p className="text-slate-400 text-lg">
+                Launch your own music room and invite the world or keep it
+                private with friends.
               </p>
-            </div>
+            </motion.div>
 
-            <Card className="border rounded-xl">
-              <CardHeader>
-                <CardTitle>Space Configuration</CardTitle>
-                <CardDescription>
-                  Configure your music space settings. You can always change
-                  these later.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreateSpace} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="spaceName">Space Name *</Label>
-                    <Input
-                      id="spaceName"
-                      placeholder="My Awesome Music Space"
-                      value={spaceName}
-                      onChange={(e) => setSpaceName(e.target.value)}
-                      required
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Choose a memorable name for your music space
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Describe what kind of music or vibe you're going for..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div className="space-y-1">
-                      <Label htmlFor="requireAuth">Public Space</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Anonymous users can Join space, add songs and vote
-                      </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card className="border-white/5 bg-white/5 backdrop-blur-2xl rounded-[32px] overflow-hidden shadow-2xl">
+                <CardContent className="p-8">
+                  <form onSubmit={handleCreateSpace} className="space-y-8">
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="spaceName"
+                        className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1"
+                      >
+                        Space Name
+                      </Label>
+                      <Input
+                        id="spaceName"
+                        placeholder="e.g. Midnight Vibez Only"
+                        value={spaceName}
+                        onChange={(e) => setSpaceName(e.target.value)}
+                        required
+                        className="bg-white/5 border-white/10 h-14 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-lg placeholder:text-slate-600 transition-all font-semibold px-4"
+                      />
                     </div>
-                    <Switch
-                      id="requireAuth"
-                      checked={isPulic}
-                      onCheckedChange={setIsPublic}
-                    />
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={!spaceName.trim() || isPending || !isAuth}
-                    >
-                      {isPending ? "Creating Space..." : "Create Space"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1 bg-transparent"
-                      onClick={() => router.back()}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
 
-            <div className="mt-8 text-center">
-              <p className="text-muted-foreground">
-                Already have a space ID?{" "}
-                <Link href="/join" className="text-primary hover:underline">
-                  Join an existing space
-                </Link>
-              </p>
-            </div>
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="description"
+                        className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1"
+                      >
+                        Vibe Description
+                      </Label>
+                      <Textarea
+                        id="description"
+                        placeholder="Tell use about the music, the mood, or the rules..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={4}
+                        className="bg-white/5 border-white/10 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-base placeholder:text-slate-600 transition-all resize-none font-medium p-4"
+                      />
+                    </div>
+
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`p-3 rounded-xl ${isPublic ? "bg-indigo-500/20 border border-indigo-500/30" : "bg-slate-700/20 border border-slate-700/30"}`}
+                          >
+                            {isPublic ? (
+                              <Globe className="h-5 w-5 text-indigo-400" />
+                            ) : (
+                              <Lock className="h-5 w-5 text-slate-400" />
+                            )}
+                          </div>
+                          <div>
+                            <Label
+                              htmlFor="public-toggle"
+                              className="text-base font-bold text-white leading-none"
+                            >
+                              Public Space
+                            </Label>
+                            <p className="text-xs text-slate-400 mt-1.5">
+                              Appear in discovery and let anyone join.
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          id="public-toggle"
+                          checked={isPublic}
+                          onCheckedChange={setIsPublic}
+                          className="data-[state=checked]:bg-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 space-y-4">
+                      <Button
+                        type="submit"
+                        disabled={
+                          !spaceName.trim() || isPending || !isAuthenticated
+                        }
+                        className="w-full h-16 bg-linear-to-br from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-black text-xl rounded-2xl shadow-2xl shadow-indigo-500/20 transition-all active:scale-[0.98] disabled:opacity-50 border-none cursor-pointer"
+                      >
+                        {isPending ? (
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 w-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                            Launching...
+                          </div>
+                        ) : (
+                          "Launch Space"
+                        )}
+                      </Button>
+
+                      <div className="flex items-center justify-center gap-2 py-2">
+                        <div className="h-px bg-slate-800 flex-1" />
+                        <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-2 px-2">
+                          <Share2 className="h-3 w-3" />
+                          Shareable link after launch
+                        </p>
+                        <div className="h-px bg-slate-800 flex-1" />
+                      </div>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
-        </section>
+        </main>
       </div>
     </AuthGuard>
   );
