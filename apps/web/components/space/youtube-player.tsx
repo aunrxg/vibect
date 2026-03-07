@@ -48,24 +48,39 @@ export default function YoutubePlayer() {
     if (!currentSong?.youtubeId || !window.YT || !window.YT.Player) return;
 
     if (playerRef.current) {
-      let startSeconds = 0;
       if (playbackState) {
-        const now = Date.now();
-        if (playbackState.isPaused) {
-          startSeconds = playbackState.pausedAt / 1000;
-        } else {
-          startSeconds = (now - playbackState.startedAt) / 1000;
+        if (playerRef.current) {
+          const startSeconds =
+            (playbackState?.isPaused
+              ? playbackState.pausedAt
+              : playbackState?.startedAt
+                ? Date.now() - playbackState.startedAt
+                : 0) / 1000;
+          console.log(
+            "[YoutubePlayer] Loading new video:",
+            currentSong.title,
+            "at:",
+            startSeconds,
+          );
+          playerRef.current.loadVideoById({
+            videoId: currentSong.youtubeId,
+            startSeconds: Math.max(0, startSeconds),
+          });
+          if (!isPlaying) {
+            playerRef.current.pauseVideo();
+          } else {
+            playerRef.current.playVideo();
+          }
+          return;
         }
-      }
-      playerRef.current.loadVideoById({
-        videoId: currentSong.youtubeId,
-        startSeconds: Math.max(0, startSeconds),
-      });
-      if (!isPlaying) {
-        playerRef.current.pauseVideo();
       }
       return;
     }
+
+    console.log(
+      "[YoutubePlayer] Initializing new player for:",
+      currentSong.title,
+    );
 
     const initPlayer = () => {
       playerRef.current = new window.YT.Player("youtube-player-element", {
@@ -106,6 +121,7 @@ export default function YoutubePlayer() {
             }
           },
           onStateChange: (event: any) => {
+            console.log("[YoutubePlayer] Player state changed:", event.data);
             // YT.PlayerState.ENDED = 0
             if (event.data === 0) {
               console.log("Song Ended, skipping to next...");
@@ -131,7 +147,10 @@ export default function YoutubePlayer() {
   // 3. Sync Play/Pause state
   useEffect(() => {
     if (!playerRef.current || !isReady) return;
-
+    console.log(
+      "[YoutubePlayer] Syncing play/pause:",
+      isPlaying ? "PLAY" : "PAUSE",
+    );
     if (isPlaying) {
       playerRef.current.playVideo();
     } else {
@@ -166,7 +185,7 @@ export default function YoutubePlayer() {
   }, [isReady, isPlaying, setProgress]);
 
   return (
-    <div className="hidden">
+    <div className="fixed inset-0 pointer-events-none opacity-0 z-[-1]">
       <div id="youtube-player-element" ref={containerRef} />
     </div>
   );

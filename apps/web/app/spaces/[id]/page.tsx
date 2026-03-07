@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DraggableCard from "@/components/space/draggable-card";
 import SpaceInfo from "@/components/space/space-info";
+import YoutubePlayer from "@/components/space/youtube-player";
 // zustand state stores
 import { useAuthStore } from "@/store/use-auth-store";
 import { useSpaceStore } from "@/store/use-space-store";
@@ -122,12 +123,13 @@ export default function SpacePage() {
   ];
   return (
     <main className="h-screen w-full text-white bg-black">
+      <YoutubePlayer />
       <div className="flex flex-1 h-full flex-col md:flex-row min-h-0 relative">
         {/* Main Content Area: NowPlaying takes full space on mobile */}
         <section className="flex-1 h-full overflow-hidden">
           <div className="flex items-center gap-1.5 mt-0.5 justify-end px-5">
             <span className="text-xs text-slate-400 font-medium">
-              {space.memberCount} listening now
+              {space.memberCount ?? 0} listening now
             </span>
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -138,8 +140,8 @@ export default function SpacePage() {
         </section>
 
         {/* Desktop Sidebar */}
-        <section className="hidden md:flex h-full w-[400px] border-l border-white/5 flex-col">
-          <div className="p-6 h-full">
+        <section className="hidden md:flex h-full w-[450px] border-l border-white/5 flex-col">
+          <div className="p-4 h-full">
             <Tabs defaultValue="queue" className="h-full flex flex-col">
               <TabsList className="w-full mb-6">
                 {tabs.map((tab) => (

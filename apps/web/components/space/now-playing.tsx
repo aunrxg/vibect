@@ -28,7 +28,6 @@ export default function NowPlaying() {
   if (!currentSong) {
     return (
       <div className="flex flex-col items-center justify-center h-[91vh] w-full bg-black p-8 text-center">
-        <YoutubePlayer />
         <div className="relative mb-8 flex h-48 w-48 items-center justify-center rounded-3xl bg-white/5 shadow-2xl backdrop-blur-sm">
           <Music2 className="h-20 w-20 text-indigo-500/30" />
         </div>
@@ -44,8 +43,6 @@ export default function NowPlaying() {
 
   return (
     <div className="relative flex flex-col items-center justify-center h-full w-full bg-black p-6 overflow-hidden">
-      <YoutubePlayer />
-
       {/* Dynamic Background Glow */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-white/10 blur-[120px]" />

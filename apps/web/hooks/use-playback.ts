@@ -26,6 +26,12 @@ export const usePlayback = (spaceId: string) => {
   // Sync with store when data changes
   useEffect(() => {
     if (playbackState && playbackState.song) {
+      console.log(
+        "[usePlayback] Syncing store with:",
+        playbackState.song.title,
+        "isPlaying:",
+        !playbackState.isPaused,
+      );
       const song = playbackState.song;
       setCurrentSong({
         id: song.id,
@@ -45,12 +51,16 @@ export const usePlayback = (spaceId: string) => {
       });
       if (playbackState.isPaused) pause();
       else play();
+    } else if (playbackState && !playbackState.song) {
+      console.log("[usePlayback] No song in playback state, resetting store");
+      setCurrentSong(null);
     }
   }, [playbackState, setCurrentSong, play, pause]);
 
   // WebSocket Listeners
   useEffect(() => {
-    const handlePlaybackUpdate = () => {
+    const handlePlaybackUpdate = (data: any) => {
+      console.log("[usePlayback] WS PLAYBACK_UPDATED received", data);
       queryClient.invalidateQueries({
         queryKey: ["playback", spaceId, identityKey],
       });
@@ -81,6 +91,12 @@ export const usePlayback = (spaceId: string) => {
 
   const nextMutation = useMutation({
     mutationFn: () => api.post(`/playback/${spaceId}/next`),
+    onSuccess: () => {
+      console.log("[usePlayback] Next song success, invalidating...");
+      queryClient.invalidateQueries({
+        queryKey: ["playback", spaceId, identityKey],
+      });
+    },
   });
 
   return {
