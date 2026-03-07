@@ -39,6 +39,27 @@ const spaceRoute: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // list user's own spaces
+  fastify.get(
+    "/me",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      const { page, limit } = listPublicSpacesSchema.parse(request.query);
+      const p = parseInt(page ?? "1");
+      const l = parseInt(limit ?? "20");
+      const { spaces, meta } = await spaceService.listUserSpaces(
+        request.user!.id,
+        {
+          page: p,
+          limit: l,
+        },
+      );
+      return sendPaginated(reply, spaces, meta);
+    },
+  );
+
   // get space by id
   fastify.get(
     "/:id",

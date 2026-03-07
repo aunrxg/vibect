@@ -160,6 +160,32 @@ export class SpaceService {
     return { spaces, meta: calculatePagination(page, limit, total) };
   }
 
+  async listUserSpaces(
+    userId: string,
+    { page = 1, limit = 20 }: { page: number; limit: number },
+  ) {
+    const total = await this.app.prisma.space.count({
+      where: { ownerId: userId },
+    });
+
+    const spaces = await this.app.prisma.space.findMany({
+      where: { ownerId: userId },
+      skip: (page - 1) * limit,
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true },
+        },
+        _count: {
+          select: { songs: true, memberships: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+
+    return { spaces, meta: calculatePagination(page, limit, total) };
+  }
+
   async updateSpace(input: UpdateSpaceInput, userId: string) {
     const { id, ...data } = input;
     const space = await this.app.prisma.space.findUnique({
