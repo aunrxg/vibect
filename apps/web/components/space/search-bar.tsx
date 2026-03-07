@@ -38,7 +38,7 @@ export function SearchBar() {
   return (
     <div>
       {/* Search Bar Section */}
-      <div className="px-6 py-4 border-b border-white/10 space-y-4">
+      <div className="px-4 py-4 border-b border-white/10 space-y-4">
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-white transition-colors" />
           <Input

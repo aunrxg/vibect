@@ -24,7 +24,7 @@ export async function setupWebSocket(fastify: FastifyInstance) {
   });
 
   // init managers
-  const connectionManager = new ConnectionManager();
+  const connectionManager = ConnectionManager.getInstance();
   const handlers = new WebSocketHandlers(fastify, connectionManager);
   const redisSubscriber = new RedisSubscriber(fastify, connectionManager);
 

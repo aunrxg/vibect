@@ -6,10 +6,11 @@ import {
   // ListPublicSpacesInput,
   UpdateSpaceInput,
 } from "./spaces.schema";
-import { ForbiddenError, NotFoundError } from "../../utils/error";
+import { NotFoundError, ForbiddenError } from "../../utils/error";
 import { generateInviteCodes } from "../../utils/helpers";
 import { calculatePagination } from "../../utils/response";
 import { CACHE_KEYS, CACHE_TTL } from "../../config/constants";
+import { ConnectionManager } from "../../websocket/connection-manager";
 
 export class SpaceService {
   constructor(private app: FastifyInstance) {}
@@ -56,7 +57,14 @@ export class SpaceService {
     // fetch from cache
     const cached = await this.app.redis.get(CACHE_KEYS.SPACE(input.id));
     if (cached) {
-      return JSON.parse(cached);
+      const space = JSON.parse(cached);
+      return {
+        ...space,
+        memberCount: ConnectionManager.getInstance().getSpaceMemberCount(
+          space.id,
+        ),
+        members: ConnectionManager.getInstance().getSpaceMembers(space.id),
+      };
     }
 
     // from db
@@ -83,7 +91,13 @@ export class SpaceService {
       JSON.stringify(space),
     );
 
-    return space;
+    return {
+      ...space,
+      memberCount: ConnectionManager.getInstance().getSpaceMemberCount(
+        space.id,
+      ),
+      members: ConnectionManager.getInstance().getSpaceMembers(space.id),
+    };
   }
 
   async getSpaceByCode(inviteCode: string) {
@@ -127,7 +141,13 @@ export class SpaceService {
       JSON.stringify(space),
     );
 
-    return space;
+    return {
+      ...space,
+      memberCount: ConnectionManager.getInstance().getSpaceMemberCount(
+        space.id,
+      ),
+      members: ConnectionManager.getInstance().getSpaceMembers(space.id),
+    };
   }
 
   async listPublicSpaces({
@@ -157,7 +177,15 @@ export class SpaceService {
       take: limit,
     });
 
-    return { spaces, meta: calculatePagination(page, limit, total) };
+    const spacesWithLiveCounts = spaces.map((s) => ({
+      ...s,
+      memberCount: ConnectionManager.getInstance().getSpaceMemberCount(s.id),
+    }));
+
+    return {
+      spaces: spacesWithLiveCounts,
+      meta: calculatePagination(page, limit, total),
+    };
   }
 
   async listUserSpaces(
@@ -183,7 +211,15 @@ export class SpaceService {
       take: limit,
     });
 
-    return { spaces, meta: calculatePagination(page, limit, total) };
+    const spacesWithLiveCounts = spaces.map((s) => ({
+      ...s,
+      memberCount: ConnectionManager.getInstance().getSpaceMemberCount(s.id),
+    }));
+
+    return {
+      spaces: spacesWithLiveCounts,
+      meta: calculatePagination(page, limit, total),
+    };
   }
 
   async updateSpace(input: UpdateSpaceInput, userId: string) {

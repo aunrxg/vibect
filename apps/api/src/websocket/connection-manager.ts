@@ -1,6 +1,15 @@
 import { AuthenticatedWebSocket } from "./types";
 
 export class ConnectionManager {
+  private static instance: ConnectionManager;
+
+  public static getInstance(): ConnectionManager {
+    if (!ConnectionManager.instance) {
+      ConnectionManager.instance = new ConnectionManager();
+    }
+    return ConnectionManager.instance;
+  }
+
   // Map of spaceId -> Set of WebSocket connections
   private spaceConnections = new Map<string, Set<AuthenticatedWebSocket>>();
 

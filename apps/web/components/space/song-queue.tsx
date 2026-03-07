@@ -102,11 +102,11 @@ export default function SongQueue({
   }
 
   return (
-    <div className="flex flex-col h-full text-white overflow-hidden">
+    <div className="flex flex-col h-full w-full text-white overflow-hidden">
       {/* Search Bar Section */}
       <SearchBar />
       <ScrollArea className="flex-1">
-        <div className="px-6 py-6 space-y-8">
+        <div className="px-2 py-6 space-y-8">
           {/* Playing From Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -129,7 +129,7 @@ export default function SongQueue({
 
             {/* Currently Playing Song */}
             {currentSong && (
-              <div className="group relative flex items-center gap-4 p-2 -mx-2 bg-white/10 rounded-lg">
+              <div className="group relative flex items-center gap-4 p-1 bg-white/10 rounded-lg">
                 <div className="relative shrink-0 w-12 h-12 flex items-center justify-center">
                   <Volume2 className="h-5 w-5 text-white animate-pulse" />
                 </div>
@@ -164,7 +164,7 @@ export default function SongQueue({
               {upcomingSongs.map((song, index) => (
                 <div
                   key={song.id}
-                  className="group flex items-center gap-4 p-2 -mx-2 hover:bg-white/5 rounded-lg transition-colors border-b border-white/5"
+                  className="group flex items-center gap-4 p-2 hover:bg-white/5 rounded-lg transition-colors border-b border-white/5"
                 >
                   <div className="relative shrink-0">
                     <Image
@@ -195,7 +195,7 @@ export default function SongQueue({
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-end w-[130px] shrink-0">
+                  <div className="flex items-center justify-end min-w-[120px] shrink-0">
                     <div
                       className={cn(
                         "flex items-center gap-1 transition-opacity",
