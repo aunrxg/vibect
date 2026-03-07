@@ -1,194 +1,254 @@
 "use client";
 
+import { HomeHeader } from "@/components/home/home-header";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { IconBrandDiscord, IconBrandGithub } from "@tabler/icons-react";
-import Image from "next/image";
+import { Label } from "@/components/ui/label";
+import {
+  IconBrandDiscord,
+  IconBrandGithub,
+  IconBrandGoogle,
+} from "@tabler/icons-react";
+import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { toast } from "sonner";
 import Input51 from "@/components/input51";
 import { useAuthStore } from "@/store/use-auth-store";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const {
     isAuthenticated,
     loading,
     signInWithProvider,
     signUpWithEmail,
+    signInWithEmail,
     error,
   } = useAuthStore();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState<string>("");
   const [isSubmiting, setIsSubmiting] = useState(false);
-  const [signUp, setSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
-    const isAuth = isAuthenticated();
-    if (isAuth) {
-      router.push("/create");
+    if (isAuthenticated()) {
+      router.push(redirectTo);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmiting(true);
 
-    signUpWithEmail(email, password);
-    setIsSubmiting(false);
-    if (error) {
-      console.error("Error signing-in: ", error);
-      return;
+    try {
+      if (isSignUp) {
+        await signUpWithEmail(email, password);
+        toast.success("Account created! Please check your email to verify.");
+      } else {
+        await signInWithEmail(email, password);
+        toast.success("Welcome back!");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Authentication failed. Please try again.");
+    } finally {
+      setIsSubmiting(false);
     }
-    router.push("/");
+  };
+
+  const handleProviderAuth = async (
+    provider: "google" | "github" | "discord",
+  ) => {
+    try {
+      await signInWithProvider(provider);
+    } catch (err: any) {
+      toast.error(`Failed to sign in with ${provider}`);
+    }
   };
 
   return (
-    <main className="bg-background flex min-h-screen w-full flex-col items-center justify-center sm:px-4">
-      <div className="w-full space-y-4 sm:max-w-md">
-        <div className="text-center">
-          <Image
-            src="/logo.svg"
-            alt="MVPBlocks Logo"
-            width={80}
-            height={80}
-            className="mx-auto"
-          />
-          <div className="mt-5 space-y-2">
-            {signUp ? (
-              <h3 className="text-2xl font-bold sm:text-3xl">
-                Oopsies Still here ;)
-              </h3>
-            ) : (
-              <h3 className="text-2xl font-bold sm:text-3xl">
-                Log in to your account
-              </h3>
-            )}
-            {signUp ? (
-              <p className="">
-                I Do have an account?{" "}
-                <Button
-                  variant="link"
-                  onClick={() => setSignUp(!signUp)}
-                  className="font-medium text-primary hover:text-primary/90"
-                >
-                  Login
-                </Button>
-              </p>
-            ) : (
-              <p className="">
-                Don&apos;t have an account?{" "}
-                <Button
-                  variant="link"
-                  onClick={() => setSignUp(!signUp)}
-                  className="font-medium text-primary hover:text-primary/90"
-                >
-                  Sign up
-                </Button>
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="space-y-6 p-4 py-6 shadow sm:rounded-lg sm:p-6">
-          <div className="grid grid-cols-3 gap-x-3">
-            <Button
-              variant="outline"
-              aria-label="Sign in with Google"
-              onClick={() => signInWithProvider("google")}
-              className="flex items-center justify-center rounded-lg border py-5 duration-150 cursor-pointer"
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col text-slate-200">
+      <HomeHeader />
+
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+        {/* Background Decor */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-[160px] -z-10 animate-pulse" />
+        <div className="absolute top-20 right-20 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px] -z-10" />
+
+        <div className="w-full max-w-md relative">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 mb-6 group"
             >
-              <svg
-                className="h-10 w-10"
-                viewBox="0 0 48 48"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g clipPath="url(#clip0_17_40)">
-                  <path
-                    d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V28.9181H37.4434C36.9055 31.8988 35.177 34.5356 32.6461 36.2111V42.2078H40.3801C44.9217 38.0278 47.532 31.8547 47.532 24.5528Z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M24.48 48.0016C30.9529 48.0016 36.4116 45.8764 40.3888 42.2078L32.6549 36.2111C30.5031 37.675 27.7252 38.5039 24.4888 38.5039C18.2275 38.5039 12.9187 34.2798 11.0139 28.6006H3.03296V34.7825C7.10718 42.8868 15.4056 48.0016 24.48 48.0016Z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M11.0051 28.6006C9.99973 25.6199 9.99973 22.3922 11.0051 19.4115V13.2296H3.03298C-0.371021 20.0112 -0.371021 28.0009 3.03298 34.7825L11.0051 28.6006Z"
-                    fill="#FBBC04"
-                  />
-                  <path
-                    d="M24.48 9.49932C27.9016 9.44641 31.2086 10.7339 33.6866 13.0973L40.5387 6.24523C36.2 2.17101 30.4414 -0.068932 24.48 0.00161733C15.4055 0.00161733 7.10718 5.11644 3.03296 13.2296L11.005 19.4115C12.901 13.7235 18.2187 9.49932 24.48 9.49932Z"
-                    fill="#EA4335"
-                  />
-                </g>
-                <defs>
-                  <clipPath id="clip0_17_40">
-                    <rect width="48" height="48" fill="white" />
-                  </clipPath>
-                </defs>
-              </svg>
-            </Button>
-            <Button
-              variant="outline"
-              aria-label="Sign in with Discord"
-              onClick={() => signInWithProvider("discord")}
-              className="flex items-center justify-center rounded-lg border py-5 duration-150 cursor-pointer"
-            >
-              <IconBrandDiscord size={24} />
-            </Button>
-            <Button
-              variant="outline"
-              aria-label="Sign in with GitHub"
-              onClick={() => signInWithProvider("github")}
-              className="flex items-center justify-center rounded-lg border py-5 duration-150 cursor-pointer"
-            >
-              <IconBrandGithub size={24} />
-            </Button>
-          </div>
-          <div className="relative">
-            <span className="bg-secondary block h-px w-full"></span>
-            <p className="absolute inset-x-0 -top-2 mx-auto inline-block w-fit px-2 text-sm bg-background">
-              Or continue with
+              <div className="h-12 w-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                {/* <Music className="h-6 w-6 text-indigo-400" /> */}
+                <Image
+                  src="/logo.svg"
+                  alt="Logo"
+                  width={80}
+                  height={80}
+                  className=" text-indigo-400"
+                />
+              </div>
+              <span className="text-2xl font-black tracking-tighter text-white">
+                Vibect
+              </span>
+            </Link>
+            <h1 className="text-3xl font-black tracking-tight text-white mb-2">
+              {isSignUp ? "Join the movement" : "Welcome back"}
+            </h1>
+            <p className="text-slate-400">
+              {isSignUp
+                ? "Create an account to start hosting your own spaces."
+                : "Sign in to continue your musical journey."}
             </p>
-          </div>
-          {/* OnSubmit declare yourself */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <Label htmlFor="email-input" className="font-medium">
-                Email
-              </Label>
-              <Input
-                id="email-input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="johndoe@example.com"
-                className="mt-2 w-full rounded-lg border bg-transparent px-3 py-5 shadow-sm outline-none focus:border-secondary"
-              />
-            </div>
-            <div className="relative">
-              {/* Password Input with strength */}
-              <Input51 value={password} onChange={setPassword} />
-            </div>
-            {error && <p className="text-red-500">{error}</p>}
-            <Button
-              disabled={isSubmiting}
-              className="w-full rounded-lg px-4 py-5 font-medium  duration-150"
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-white/5 bg-white/5 backdrop-blur-3xl rounded-[32px] overflow-hidden shadow-2xl">
+              <CardContent className="p-8">
+                {/* Social Auth */}
+                <div className="grid grid-cols-3 gap-3 mb-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleProviderAuth("google")}
+                    className="h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl transition-all"
+                  >
+                    <IconBrandGoogle className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleProviderAuth("discord")}
+                    className="h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl transition-all"
+                  >
+                    <IconBrandDiscord className="h-5 w-5 text-[#5865F2]" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleProviderAuth("github")}
+                    className="h-14 bg-white/5 border-white/10 hover:bg-white/10 rounded-2xl transition-all"
+                  >
+                    <IconBrandGithub className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/5"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-[#0a0a0a] px-4 text-slate-500 font-bold tracking-widest">
+                      Or with email
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="email"
+                      className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1"
+                    >
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="bg-white/5 border-white/10 h-14 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-lg placeholder:text-slate-700 transition-all font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-2 relative">
+                    <Input51 value={password} onChange={setPassword} />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmiting || loading}
+                    className="w-full h-16 bg-white text-black hover:bg-slate-200 font-black text-lg rounded-2xl shadow-xl transition-all active:scale-[0.98] disabled:opacity-50 border-none cursor-pointer group"
+                  >
+                    {isSubmiting || loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 border-3 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
+                        Processing...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        {isSignUp ? "Create Account" : "Sign In"}
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    )}
+                  </Button>
+                </form>
+
+                <div className="mt-8 text-center">
+                  <button
+                    onClick={() => setIsSignUp(!isSignUp)}
+                    className="text-slate-400 hover:text-white text-sm font-bold transition-colors"
+                  >
+                    {isSignUp
+                      ? "Already have an account? Sign in"
+                      : "Don't have an account? Sign up"}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <p className="mt-8 text-center text-slate-500 text-xs px-8">
+            By clicking continue, you agree to our{" "}
+            <Link
+              href="/terms"
+              className="text-slate-400 hover:text-white underline"
             >
-              {isSubmiting ? "Submitting..." : "Submit"}
-            </Button>
-          </form>
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="text-slate-400 hover:text-white underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
-        <div className="text-center">
-          <Link href="#" className="text-primary hover:text-primary/90">
-            Forgot password?
-          </Link>
+      </main>
+    </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+          <div className="h-12 w-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
         </div>
-      </div>
-    </main>
+      }
+    >
+      <AuthContent />
+    </Suspense>
   );
 }
