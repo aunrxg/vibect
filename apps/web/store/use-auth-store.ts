@@ -123,6 +123,7 @@ export const useAuthStore = create<AuthState>()(
               id: session.user.id,
               email: session.user.email!,
               name: session.user.user_metadata?.name,
+              avatarUrl: session.user.user_metadata?.avatar_url,
               isAnonymous: false,
             },
             // user: session?.user ?? null,
@@ -147,6 +148,7 @@ export const useAuthStore = create<AuthState>()(
                 id: session.user.id,
                 name: session.user.user_metadata?.name,
                 email: session.user.email!,
+                avatarUrl: session.user.user_metadata?.avatar_url,
                 isAnonymous: false,
               },
               // user: session?.user ?? null,
@@ -177,6 +179,7 @@ export const useAuthStore = create<AuthState>()(
 
         if (error) {
           set({ error: error.message, loading: false });
+          throw error;
         }
       },
 
@@ -193,7 +196,7 @@ export const useAuthStore = create<AuthState>()(
 
         if (error) {
           set({ error: error.message, loading: false });
-          return;
+          throw error;
         }
 
         set({ loading: false });
@@ -209,7 +212,7 @@ export const useAuthStore = create<AuthState>()(
 
         if (error) {
           set({ error: error.message, loading: false });
-          return;
+          throw error;
         }
 
         set({ loading: false });
@@ -227,7 +230,7 @@ export const useAuthStore = create<AuthState>()(
 
         if (error) {
           set({ error: error.message, loading: false });
-          return;
+          throw error;
         }
 
         set({ loading: false });

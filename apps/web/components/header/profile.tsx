@@ -12,6 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { useAuthStore } from "@/store/use-auth-store";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Profile({
   user,
@@ -22,6 +25,14 @@ export default function Profile({
     avatar: string;
   };
 }) {
+  const { signOut } = useAuthStore();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/");
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -69,9 +80,14 @@ export default function Profile({
         <DropdownMenuSeparator className="bg-white/5 mx-2" />
 
         <DropdownMenuGroup className="py-1">
-          <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 hover:text-white transition-all text-sm font-medium focus:bg-white/5 focus:text-white">
-            <IconUserCircle className="h-5 w-5 text-indigo-400" />
-            Profile Settings
+          <DropdownMenuItem
+            asChild
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 hover:text-white transition-all text-sm font-medium focus:bg-white/5 focus:text-white"
+          >
+            <Link href="/profile" className="flex items-center gap-3 w-full">
+              <IconUserCircle className="h-5 w-5 text-indigo-400" />
+              Profile Settings
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 hover:text-white transition-all text-sm font-medium focus:bg-white/5 focus:text-white">
             <IconCreditCard className="h-5 w-5 text-purple-400" />
@@ -81,7 +97,10 @@ export default function Profile({
 
         <DropdownMenuSeparator className="bg-white/5 mx-2" />
 
-        <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/10 text-red-400 transition-all text-sm font-medium mt-1 focus:bg-red-500/10 focus:text-red-400">
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/10 text-red-400 transition-all text-sm font-medium mt-1 focus:bg-red-500/10 focus:text-red-400"
+        >
           <IconLogout className="h-5 w-5" />
           Log out
         </DropdownMenuItem>

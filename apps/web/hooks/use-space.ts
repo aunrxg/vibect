@@ -15,6 +15,18 @@ export const usePublicSpace = () => {
   });
 };
 
+export const useUserSpaces = () => {
+  const identityKey = useAuthStore((s) => s.identityKey());
+
+  return useQuery({
+    queryKey: ["spaces", "me", identityKey],
+    queryFn: async (): Promise<Space[]> => {
+      const res = await api.get("/spaces/me");
+      return res.data;
+    },
+  });
+};
+
 export const useSpace = (spaceId: string) => {
   const identityKey = useAuthStore((s) => s.identityKey());
 
