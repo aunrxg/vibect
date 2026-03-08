@@ -1,9 +1,0 @@
-{
-  "extends": "@vibect/typescript-config/base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./",
-  },
-  "include": ["**/*.ts", "*.ts", "prisma.config.ts.bak"],
-  "exclude": ["node_modules", "dist", "prisma/migrations"]
-}
