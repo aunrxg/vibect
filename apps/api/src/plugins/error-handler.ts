@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { ZodError } from "zod";
 import { AppError, BadRequestError, ValidationError } from "../utils/error";
-import { Prisma } from "../generated/prisma/client";
+import { Prisma } from "@prisma/client";
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.setErrorHandler((error, request, reply) => {
