@@ -6,15 +6,21 @@ export class NTPService {
   // process time sync requests from client
   // return server timestamp for client to calculate offset
 
-  processTimeSyncRequest(clientTimestamp: number): {
+  processTimeSyncRequest(
+    clientTimestamp: number,
+    serverReceiveTime?: number,
+  ): {
     clientTimestamp: number;
+    serverReceiveTime: number;
+    serverTransmitTime: number;
     serverTimestamp: number;
   } {
-    const serverTimestamp = this.getCurrentTime();
-
+    const current = this.getCurrentTime();
     return {
       clientTimestamp,
-      serverTimestamp,
+      serverReceiveTime: serverReceiveTime || current,
+      serverTransmitTime: current,
+      serverTimestamp: current,
     };
   }
 

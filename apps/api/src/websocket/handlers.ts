@@ -10,6 +10,7 @@ import {
 import { CACHE_KEYS } from "../config/constants";
 import { NTPService } from "../modules/playback/ntp.service";
 import { config } from "../config";
+import { PlaybackService } from "../modules/playback/playback.service";
 
 export class WebSocketHandlers {
   constructor(
@@ -98,37 +99,11 @@ export class WebSocketHandlers {
       }
 
       //send current queue EXPENSIVE OPERARION SHOULD MOVE TO REDIS LATER
-      const songs = await this.app.prisma.songs.findMany({
-        where: {
-          spaceId,
-          playedAt: null,
-        },
-        include: {
-          votes: true,
-          addedBy: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-        },
-      });
-
-      const songsWithScores = songs.map((song) => ({
-        ...song,
-        score: song.votes.reduce((sum, v) => sum + v.value, 0),
-      }));
-
-      songsWithScores.sort((a, b) => {
-        if (b.score !== a.score) {
-          return b.score - a.score;
-        }
-        return new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
-      });
+      const playbackService = new PlaybackService(this.app);
+      const queue = await playbackService.getQueue(spaceId);
 
       this.sendMessage(socket, WSEvents.QUEUE_UPDATED, {
-        queue: songsWithScores,
+        queue,
       });
 
       // notify everyone in space (including joining user)
@@ -147,6 +122,13 @@ export class WebSocketHandlers {
       );
 
       this.app.log.info(`Client ${socket.clientId} joined space ${spaceId}`);
+
+      // set up drift correction sync periodically
+      if (!(socket as any).syncInterval) {
+        (socket as any).syncInterval = setInterval(() => {
+          this.sendMessage(socket, "TIME_SYNC_REQUIRED" as any);
+        }, 60000);
+      }
     } catch (error) {
       this.app.log.error({ error }, "Error handling JOIN_SPACE");
       this.sendError(socket, "Failed to join space");
@@ -165,6 +147,11 @@ export class WebSocketHandlers {
     // leave
     this.connectionManager.removeFromSpace(spaceId, socket);
     const members = this.connectionManager.getSpaceMembers(spaceId);
+
+    if ((socket as any).syncInterval) {
+      clearInterval((socket as any).syncInterval);
+      delete (socket as any).syncInterval;
+    }
 
     // notify other socket
     this.connectionManager.broadcastToSpace(
@@ -187,10 +174,14 @@ export class WebSocketHandlers {
     payload: TimeSyncPayload,
     request: FastifyRequest,
   ): void {
+    const serverReceiveTime = Date.now();
     const { clientTimeStamp } = payload;
     const ntpService = new NTPService(request.server);
 
-    const response = ntpService.processTimeSyncRequest(clientTimeStamp);
+    const response = ntpService.processTimeSyncRequest(
+      clientTimeStamp,
+      serverReceiveTime,
+    );
 
     this.sendMessage(socket, WSEvents.TIME_SYNC_RESPONSE, response);
   }
