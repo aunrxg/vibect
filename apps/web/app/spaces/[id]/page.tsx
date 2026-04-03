@@ -7,6 +7,7 @@ import SongQueue from "@/components/space/song-queue";
 import UserPresence from "@/components/space/user-presence";
 import NowPlaying from "@/components/space/now-playing";
 import MusicPlayer from "@/components/space/music-player";
+import { TopBar } from "@/components/space/top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -122,7 +123,8 @@ export default function SpacePage() {
     },
   ];
   return (
-    <main className="h-screen w-full text-white bg-black">
+    <main className="h-screen w-full text-white bg-black flex flex-col">
+      <TopBar spaceId={spaceId} />
       <YoutubePlayer />
       <div className="flex flex-1 h-full flex-col md:flex-row min-h-0 relative">
         {/* Main Content Area: NowPlaying takes full space on mobile */}

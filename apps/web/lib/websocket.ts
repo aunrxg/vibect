@@ -1,6 +1,7 @@
 import { queryClient } from "./queryClient";
 import { ConnectionState } from "./types";
 import { useAuthStore } from "@/store/use-auth-store";
+import { useSpaceStore } from "@/store/use-space-store";
 
 export enum WSEvents {
   // Client -> Server
@@ -17,6 +18,7 @@ export enum WSEvents {
   PLAYBACK_UPDATED = "playback_updated",
   USER_JOINED = "user_joined",
   TIME_SYNC_RESPONSE = "time_sync_response",
+  TIME_SYNC_REQUIRED = "TIME_SYNC_REQUIRED",
   PONG = "pong",
   ERROR = "error",
 }
@@ -40,6 +42,11 @@ interface PlaybackState {
 }
 
 class WebSocketClient {
+  // record clock drift
+  private syncSamples: { offset: number; rtt: number; timestamp: number }[] =
+    [];
+  private maxSample = 10;
+
   private ws: WebSocket | null = null;
   private currentSpaceId: string | null = null;
   private token: string | null = null;
@@ -162,6 +169,9 @@ class WebSocketClient {
 
     this.send(WSEvents.JOIN_SPACE, payload);
     console.log("joining space: ", spaceId);
+
+    // Trigger initial time calibration metrics
+    setTimeout(() => this.requestTimeSync(), 100);
   }
 
   leaveSpace() {
@@ -221,6 +231,9 @@ class WebSocketClient {
           break;
         case WSEvents.TIME_SYNC_RESPONSE:
           this.handleTimeSyncResponse(payload);
+          break;
+        case WSEvents.TIME_SYNC_REQUIRED:
+          this.requestTimeSync();
           break;
         case WSEvents.PONG:
           console.log("Pong Received");
@@ -352,12 +365,67 @@ class WebSocketClient {
     clientTimestamp: number;
     serverTimestamp: number;
   }) {
-    const roundTripTime = Date.now() - data.clientTimestamp;
+    const t4 = Date.now();
+    const roundTripTime = t4 - data.clientTimestamp;
     const serverTime = data.serverTimestamp + roundTripTime / 2;
-    const offset = serverTime - Date.now();
+    const offset = serverTime - t4;
 
+    // record sample
+    this.syncSamples.push({
+      offset,
+      rtt: roundTripTime,
+      timestamp: t4,
+    });
+
+    // keep only N samples
+    if (this.syncSamples.length > this.maxSample) {
+      this.syncSamples.shift();
+    }
+
+    // log stats
+    if (this.syncSamples.length >= 5) {
+      this.logDriftStats();
+    }
     console.log(`Time sync - RTT: ${roundTripTime}ms, Offset: ${offset}ms`);
-    this.emit("time:sync: ", { roundTripTime, offset });
+    useSpaceStore.getState().setMetrics({ rtt: roundTripTime, offset });
+    this.emit("time:sync", { roundTripTime, offset });
+  }
+
+  getDriftStats() {
+    if (this.handleTimeSyncResponse.length === 0) return null;
+    const offsets = this.syncSamples.map((s) => Math.abs(s.offset));
+    const rtts = this.syncSamples.map((s) => s.rtt);
+
+    const avg = (arr: number[]) => arr.reduce((a, b) => a + b) / arr.length;
+    const max = (arr: number[]) => Math.max(...arr);
+
+    return {
+      avgOffsetMs: avg(offsets).toFixed(2),
+      maxOffsetMs: max(offsets).toFixed(2),
+      avgRttMs: avg(rtts).toFixed(2),
+      sampleCount: this.syncSamples.length,
+    };
+  }
+
+  private logDriftStats() {
+    const stats = this.getDriftStats();
+    if (!stats) return;
+    console.log(
+      `[SYNC STATS] Avg Offset: ${stats.avgOffsetMs}ms | ` +
+        `Max Offset: ${stats.maxOffsetMs}ms | ` +
+        `Avg RTT: ${stats.avgRttMs}ms | ` +
+        `Samples: ${stats.sampleCount}`,
+    );
+  }
+
+  async measureDrift(round = 10, intervalMs = 300) {
+    this.syncSamples = [];
+    for (let i = 0; i < round; i++) {
+      this.requestTimeSync();
+      await new Promise((res) => setTimeout(res, intervalMs));
+    }
+
+    console.table(this.getDriftStats());
   }
 
   private startPingInterval() {
